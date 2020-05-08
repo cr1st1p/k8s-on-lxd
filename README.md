@@ -1,5 +1,21 @@
-[TOC]
-
+* [About](#about)
+* [Motivation](#motivation)
+* [Features](#features)
+* [Tech - how it works](#tech---how-it-works)
+* [Platforms and versions](#platforms-and-versions)
+* [Using it](#using-it)
+ * [Install](#install)
+ * [Command line parameters](#command-line-parameters)
+ * [One time setup](#one-time-setup)
+ * [Creating a cluster](#creating-a-cluster)
+ * [Stopping the cluster](#stopping-the-cluster)
+ * [Starting back the cluster](#starting-back-the-cluster)
+ * [Removing the cluster](#removing-the-cluster)
+* [Accessing your services](#accessing-your-services)
+* [Addons](#addons)
+* [Development](#development)
+ 
+# About
 This is a shell script that will allow you to create **multiple** Kubernetes clusters, maybe of **different** versions, with **multiple** nodes.
 Each node will be a [LXD container](https://linuxcontainers.org/lxd/introduction/), meaning that it is going to be lightweight - compared to a full VirtualBox/KVM virtual machine node for example. Since it is based on LXD - for now it will run only on Linux. But even if you're not working on Linux you could start only one full virtual machine (VM), into which you would manage all your clusters and nodes.
 
@@ -261,13 +277,13 @@ NOTE: for the moment, "--addon-run" should be the last parameter in the command 
 See the documentation for each addon in its own directory *addons/NAME/README.md*
 
 List:
-- [addons/proxy-cache/README.md] - ensure things are setup so that the installation uses your proxy 
-- [addons/dashboard/README.md] - installs Kubernetes Dashboard Web UI
-- [addons/apt-proxy-cache/README.md] - during setup phases, uses APT proxy from environment variable  *apt_proxy_cache*
-- [addons/local-storage-class/README.md] - Local host storage class
-- [addons/letsencrypt-staging/README.md] - Add Letsencrypt *Staging* certificate inside the nodes
+- [addons/proxy-cache/README.md](addons/proxy-cache/README.md) - ensure things are setup so that the installation uses your proxy 
+- [addons/dashboard/README.md](addons/dashboard/README.md) - installs Kubernetes Dashboard Web UI
+- [addons/apt-proxy-cache/README.md](addons/apt-proxy-cache/README.md) - during setup phases, uses APT proxy from environment variable  *apt_proxy_cache*
+- [addons/local-storage-class/README.md](addons/local-storage-class/README.md) - Local host storage class
+- [addons/letsencrypt-staging/README.md](addons/letsencrypt-staging/README.md) - Add Letsencrypt *Staging* certificate inside the nodes
 
 ---
 # Development
-See [docs/DEV.md]
+See [docs/DEV.md](docs/DEV.md)
 
