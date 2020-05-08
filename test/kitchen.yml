@@ -1,0 +1,89 @@
+# LINKS:
+# https://github.com/test-kitchen/test-kitchen/pull/1428 - about pre/post hooks
+# https://github.com/saltstack-formulas/salt-formula/blob/master/kitchen.yml
+# https://github.com/philpep/test-driven-infrastructure-example
+# https://medium.com/@Joachim8675309/testkitchen-with-ansible-and-testinfra-e3fc4320ced
+# pasing env vars, via Erb style... : https://stackoverflow.com/questions/35004023/how-to-pass-environment-variables-to-test-kitchen-in-kitchen-yml
+# https://github.com/ubuntu/microk8s/tree/master/tests
+#   inspiration for when you want to check pod status, dashboard addon, etc
+#
+
+
+
+
+---
+driver:
+  name: vagrant
+  pre_create_command: vagrant plugin list | grep -q -E '^vagrant-proxyconf\s*' || vagrant plugin install vagrant-proxyconf
+  vagrantfiles:
+    - vagrant-snippets.rb
+  customize:
+    memory: 3072
+    cpus: 2
+  # during development:
+  synced_folders:
+    - ["..", "/vagrant"]
+
+provisioner:
+  name: shell
+  sudo: true
+  require_chef: false
+  script: provision.sh
+
+platforms:
+  - name: ubuntu-18.04
+  - name: ubuntu-19.10
+  - name: ubuntu-20.04
+  #- name: ubuntu-14.04
+  - name: arch-2019-10
+    driver_config:
+      box: archlinux/archlinux
+      box_version: "2019.10.02"
+
+  - name: arch-2020-05
+    driver_config:
+      box: archlinux/archlinux
+      box_version: "2020.05.05"
+
+  #- name: arch
+
+verifier:
+  name: shell
+  # --ssh-config -> to disable a warning 
+  # NOT WORKING: --sudo --sudo-user ${KITCHEN_USERNAME}  - to force shell loading of profile and other environment things 
+  command: py.test --ssh-config ssh-config --hosts="ssh://${KITCHEN_USERNAME}@${KITCHEN_HOSTNAME}:${KITCHEN_PORT}?ssh_identity_file=${KITCHEN_SSH_KEY}" --junit-xml "junit-${KITCHEN_INSTANCE}.xml" "integration/always" "integration/${KITCHEN_SUITE}"
+
+suites:
+  - name: 1.13.12
+    provisioner:
+      arguments: "--k8s_version=1.13.12"
+    includes:
+      - ubuntu-18.04
+      - ubuntu-19.10
+      - ubuntu-20.04
+      #- arch-2019-10
+      - arch-2020-05
+  - name: 1.16.2
+    provisioner:
+      arguments: "--k8s_version=1.16.2"
+    includes:
+      - ubuntu-18.04
+      - ubuntu-19.10
+      - ubuntu-20.04
+      #- arch-2019-10
+      - arch-2020-05
+
+  - name: 1.18.2
+    provisioner:
+      arguments: "--k8s_version=1.18.2"
+
+    includes:
+      - ubuntu-18.04
+      - ubuntu-19.10
+      - ubuntu-20.04
+      #- arch-2019-10
+      - arch-2020-05
+  - name: fail
+    includes:
+      - ubuntu-14.04
+      

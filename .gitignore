@@ -1,0 +1,9 @@
+.scannerwork
+.buildpath
+.project
+.kitchen/
+.kitchen.local.yml
+junit-*.xml
+__pycache__
+*.pyc
+.vscode

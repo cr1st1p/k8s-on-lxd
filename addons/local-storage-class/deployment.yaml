@@ -1,0 +1,153 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    release: local-storage-provisioner
+  name: local-storage-provisioner-pv-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:persistent-volume-provisioner
+subjects:
+- kind: ServiceAccount
+  name: local-storage-admin
+  namespace: default
+
+---
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    release: local-storage-provisioner
+  name: local-storage-provisioner-node-clusterrole
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+
+---
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    release: local-storage-provisioner
+  name: local-storage-provisioner-node-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: local-storage-provisioner-node-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: local-storage-admin
+  namespace: default
+
+---
+
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    release: local-storage-provisioner
+  name: local-storage-admin
+  namespace: default
+
+---
+
+
+---
+apiVersion: v1
+data:
+  storageClassMap: "\n${CLASS_NAME}:\n   hostDir: /mnt/local-disks\n   mountDir: /mnt/local-disks\n
+    \  volumeMode: Filesystem\n   fsType: ext4\n"
+kind: ConfigMap
+metadata:
+  labels:
+    release: local-storage-provisioner
+  name: local-provisioner-config
+  namespace: default
+
+---
+
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: local-volume-provisioner
+    release: local-storage-provisioner
+  name: local-volume-provisioner
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: local-volume-provisioner
+  template:
+    metadata:
+      labels:
+        app: local-volume-provisioner
+    spec:
+      containers:
+      - env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: JOB_CONTAINER_IMAGE
+          value: quay.io/external_storage/local-volume-provisioner:v2.3.0
+        image: quay.io/external_storage/local-volume-provisioner:v2.3.0
+        name: provisioner
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/provisioner/config
+          name: provisioner-config
+          readOnly: true
+        - mountPath: /dev
+          name: provisioner-dev
+        - mountPath: /mnt/local-disks
+          mountPropagation: HostToContainer
+          name: local-disks
+      serviceAccountName: local-storage-admin
+      volumes:
+      - configMap:
+          name: local-provisioner-config
+        name: provisioner-config
+      - hostPath:
+          path: /dev
+        name: provisioner-dev
+      - hostPath:
+          path: /mnt/local-disks
+        name: local-disks
+
+---
+
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ${CLASS_NAME}
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+
