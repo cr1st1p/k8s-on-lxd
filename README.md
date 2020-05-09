@@ -14,7 +14,7 @@
 * [Accessing your services](#accessing-your-services)
 * [Addons](#addons)
 * [Development](#development)
- 
+
 # About
 This is a shell script that will allow you to create **multiple** Kubernetes clusters, maybe of **different** versions, with **multiple** nodes.
 Each node will be a [LXD container](https://linuxcontainers.org/lxd/introduction/), meaning that it is going to be lightweight - compared to a full VirtualBox/KVM virtual machine node for example. Since it is based on LXD - for now it will run only on Linux. But even if you're not working on Linux you could start only one full virtual machine (VM), into which you would manage all your clusters and nodes.
@@ -30,10 +30,19 @@ In short: I needed a quick way to start multiple Kubernetes clusters, with multi
 
 Why multiple nodes? Well.. you **do** want to test HA setups and Deployments with more than 1 pod, right?
 
-# Important
+# Notes
 This is intended for **development** purposes and not production.
 
+When referring to the times something took to run - reference is a desktop computer:
+
+- CPU: Intel Xeon E3-1240 V2 @ 3.4Ghz (kindof' 2012 I7 processor without a GPU)
+- RAM: 32Gb
+- SSD Samsung EVO 850 250Gb (~ 80% used capacity)
+
+
+
 # Features
+
 **Shell script** - setup, install, stop, start, delete, and then... it is out of your way - no other services/processes running.
 
 **Lightweight**: it uses LXD containers which are very light compared to a full blown virtual machine like VirtualBox/KVM. And once setup and containers running, nothing else is still running and consuming CPU (as opposed to Juju, let's say)
@@ -65,11 +74,11 @@ All the system is made of a multi-file bash shell script. For more technical/dev
   Images are getting quite big for now, maybe things can be improved.
 Images could also theoretically just be present on the net (of your company) and downloaded instead of being built.
 	
-- when asked for, it creates a master node, based on the images created before. Takes 1min on my desktop.
+- when asked for, it creates a master node, based on the images created before. Takes 1min on the reference desktop.
 	
   During this step, your local *kubectl* configuration is also updated so that you can later easily access this cluster.
 
-- when asked for, **add** a new node (I call it 'worker node') to the cluster, based, as well, on the previously created images. Takes 40s on my desktop. You can run this step as many times you need.
+- when asked for, **add** a new node (I call it 'worker node') to the cluster, based, as well, on the previously created images. Takes 40s on the reference desktop. You can run this step as many times you need.
 
 NOTE: you can specify the version of Kubernetes to install and use, via ```--k8s-version 1.16.2``` for example. Needed only when creating the images with ```--setup``` or the master container with ```--master```
 
@@ -123,7 +132,7 @@ Let's run the one-time setup phase. Can take some time (minutes)
 
 Important: double check what version it will install. You can force a specific version, by using ```--k8s-version X.Y.Z``` Please note that the revision part ("Z") of the version might not be the exact one installed.
 
-On my desktop, it takes 6-7 minutes to have the images ready.
+On the reference desktop, it takes 6-7 minutes to have the images ready.
 Note that because the script brings in the docker images used for Kubernete's control plane (Apiserver, etcd, and so on), the image size will be quite big: 1.2-1.7Gb
 
 ## Creating a cluster
@@ -158,8 +167,7 @@ kube-system   kube-scheduler-t2-master            1/1     Running   0          2
 
 There shouldn't be errored pods, all should end up being in 'Running' state
 
-You can also see the started lxd container - its name is 't2-master'
-```lxc list```
+You can also see the started lxd container - its name is 't2-master', by running ```lxc list```
 
 
 
@@ -168,9 +176,7 @@ You can also see the started lxd container - its name is 't2-master'
 Let's add one 'worker' node 
 ```./k8s-on-lxd.sh --name t2 --worker```
 This time, no need to say which kubernetes version, it will know it. After ~1m12s I got it 'Ready'.
-Check again the lxd containers, now we also have 't2-worker-1'
-
-```lxc list```
+Check again the lxd containers, now we also have 't2-worker-1' (run ```lxc list```)
 Let's see the Kubernetes nodes:
 
 ```bash

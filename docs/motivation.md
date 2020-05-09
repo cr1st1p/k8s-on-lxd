@@ -10,7 +10,7 @@ It started as a medium sized shell script, and ended into a multi-file shell scr
 ## Local environments setups
 ### kubeadm
 
-Running directly ```kubeadm`` would mean a single node, single environment. 
+Running directly ```kubeadm``` would mean a single node, single environment. 
 
 Pro: Directly on your machine (lightweight)
 Con: No multiple nodes; no multiple environments; no multiple k8s versions
@@ -40,7 +40,7 @@ Also - I thought - why a full blown VM? There is [LXD](https://linuxcontainers.o
 #### juju 
 After thinking about LXD, I tried ```juju``` charm to install kubernetes inside LXD. Tried several times. It succeeded to install it only one time, after maaaany minutes, but after that it had also quite some big cpu load. Most of the time, it did not succeed to install at all, after tens of minutes. 
 
-Issues could have coming from me having btrfs and zfs file systems. Because digging around, I found out that I have to avoid such filesystems for kubernetes inside LXD.
+Issues could have coming from me having btrfs and zfs file systems. Because after digging around I found out that I have to avoid such filesystems for kubernetes inside LXD.
 
 Besides the fact that most of the time it did not work, when it worked it took a long time to run (not good for an enjoyable development environment) + quite high cpu load + having to install juju and running it all the time for what seemed to be a one time setup... seemed overkill. 
 
