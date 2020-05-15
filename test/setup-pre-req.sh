@@ -116,8 +116,9 @@ arch_install() {
 }
 
 arch_update() {
-    # TODO: check if not updated recently
-    pacman -Sy
+    # let's force an update, else we can get into index knowing about 
+    # too old packages that are later not found when asked for being installed
+    pacman -Syy
 }
 
 
@@ -243,6 +244,35 @@ install_pwgen_program() {
         bail "Want to install 'pwgen' program but don't know how"
     fi 
 }
+
+install_gawk_program() {    
+    commandExists gawk && return 0
+    
+    info "Installing 'gawk' program"
+    
+    if is_debian_like; then
+        apt_install gawk
+    elif is_arch_like; then
+    	arch_install gawk
+    else
+        bail "Want to install 'gawk' program but don't know how"
+    fi 
+}
+
+install_grep_program() {    
+    commandExists grep && return 0
+    
+    info "Installing 'grep' program"
+    
+    if is_debian_like; then
+        apt_install grep
+    elif is_arch_like; then
+    	arch_install grep
+    else
+        bail "Want to install 'grep' program but don't know how"
+    fi 
+}
+
 
 install_jq_program() {    
     commandExists jq && return 0
@@ -381,6 +411,7 @@ install_kubectl() {
     elif is_arch_like; then
 
     	# TODO: install specific version
+        # SEEME: or better, install via snap
         arch_install_aur_package kubectl-bin    	
     else
         bail "Want to install 'kubectl' but do not know how"
@@ -400,10 +431,16 @@ if [ "0" != "$(id -u)" ]; then
 fi
 
 create_proxy_files
+if is_arch_like; then
+    warn "On Arch based Linux distros, sometimes packages are broken, so this automatic update *can* fail."
+    sleep 5s
+fi
 
 update_software_db
 snapd_setup
 
+install_grep_program
+install_gawk_program
 install_pwgen_program
 install_netstat_program
 install_snap_program

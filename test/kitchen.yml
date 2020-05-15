@@ -34,6 +34,8 @@ platforms:
   - name: ubuntu-18.04
   - name: ubuntu-19.10
   - name: ubuntu-20.04
+  - name: centos/8
+
   #- name: ubuntu-14.04
   - name: arch-2019-10
     driver_config:
@@ -86,4 +88,12 @@ suites:
   - name: fail
     includes:
       - ubuntu-14.04
+  - name: playground
+    includes:
+      - ubuntu-18.04
+      - ubuntu-20.04
+      - arch-2020-05
+      - centos/8
       
+    provisioner:
+      script: /bin/true
