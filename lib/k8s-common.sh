@@ -131,7 +131,7 @@ checkResources() {
         # 90% is the default but since we're going to also add some images, lets be conservative
     	warn "Kubernetes node might not start due to disk pressure (not enough free space, 20%) on your host '/' filesystem"
         warn "  Now you're using $usedDisk%"
-        exit 1
+        sleep 5s
     fi 
 }
 
