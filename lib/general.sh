@@ -33,7 +33,7 @@ checkForCommand() {
     if ! commandExists "$1" ; then
         err "Program '$prog' not found. We need it to continue."
         err "Install it by yourself, or you can run 'sudo test/setup-pre-req.sh'"
-        err "to the install the minimal dependencies"
+        err "to install the minimal dependencies"
         exit 1
     fi
 }

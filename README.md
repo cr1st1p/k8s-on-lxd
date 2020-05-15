@@ -286,7 +286,7 @@ List:
 - [addons/proxy-cache/README.md](addons/proxy-cache/README.md) - ensure things are setup so that the installation uses your proxy 
 - [addons/dashboard/README.md](addons/dashboard/README.md) - installs Kubernetes Dashboard Web UI
 - [addons/apt-proxy-cache/README.md](addons/apt-proxy-cache/README.md) - during setup phases, uses APT proxy from environment variable  *apt_proxy_cache*
-- [addons/local-storage-class/README.md](addons/local-storage-class/README.md) - Local host storage class
+- [addons/local-storage-class/README.md](addons/local-storage-class/README.md) - Local host storage class. Read [storage](docs/storage.md) first.
 - [addons/letsencrypt-staging/README.md](addons/letsencrypt-staging/README.md) - Add Letsencrypt *Staging* certificate inside the nodes
 
 ---
