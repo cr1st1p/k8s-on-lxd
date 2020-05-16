@@ -113,7 +113,7 @@ Similar as above but for a worker node.
 
 ## before_node_starts__
 Run everytime a node starts. Be it the first time when it is created (and before full setup!) 
-or everytime user wnats the node to be started on demand.
+or everytime user wants the node to be started on demand.
 
 ----
 ## messages_master_node

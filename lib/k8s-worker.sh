@@ -71,6 +71,10 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 Conntrack:
   MaxPerCore: 0
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+failSwapOn: false
 
 EOS
        
@@ -86,9 +90,11 @@ launch_worker__08_run_kubeadm() {
 
     info "  running kubeadm"
 
-    # We add  SystemVerification due to ubuntu 19.04 using a too 'new' kernel
-    kubeAdmParams=("--ignore-preflight-errors=FileContent--proc-sys-net-bridge-bridge-nf-call-iptables,SystemVerification")
-    kubeAdmParams+=(--config "/tmp/kubeadm.config.yaml")
+    local ignore
+    ignore=$(kubeadmCommonIgnoredPreflightChecks)
+
+    kubeAdmParams=("--ignore-preflight-errors=$ignore")
+    kubeAdmParams+=(--config "$TMP_KUBEADM_CONFIG")
     
     lxcExec "$container" kubeadm join "${kubeAdmParams[@]}"
     lxcExec "$container" rm "$TMP_KUBEADM_CONFIG"

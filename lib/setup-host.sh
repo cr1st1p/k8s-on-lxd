@@ -85,6 +85,11 @@ Get 'snapd' installed by following https://snapcraft.io/docs/installing-snapd, a
     sudo snap install --color=never --unicode=never lxd
 EOS
     fi
+
+    cat << 'EOS'
+After install, do not forget to initialize LXD by running
+    sudo lxd init
+EOS
 }
 
 host_check_lxc_installed() {
@@ -194,8 +199,8 @@ host_check_minimum_requirements() {
     [ "$__wrote_about_missing_programs" = "0" ] || exit 1
 
     lxd_check_init_was_run
+    warn_about_swap
 }
-
 
 
 setup_host__01_conntrack_kernel_module() {

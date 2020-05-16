@@ -81,6 +81,50 @@ addServiceProxy() {
 }
 
 
+_warned_about_swap=0
+warn_about_swap() {
+    [ "$_warned_about_swap" = "0" ] || return 0
+    _warned_about_swap=1
+
+    local enabled=0
+
+    if [ -f /proc/swaps ]; then
+        enabled=$(tail -n +2 /proc/swaps | wc -l)
+    fi
+
+    if [ "$enabled" != "0" ]; then
+        warn "It looks like SWAP is enabled on your system. Kubernetes might be unstable."
+        cat << 'EOS'
+    You should disable it by running: sudo swapoff -a
+    For more information, check https://github.com/kubernetes/kubernetes/issues/53533
+    or try searching the net for: 'kubernetes swap'"
+    This Kubernetes setup will not run the checks for the swap, but you run this at your own risk.
+EOS
+        sleep 3s
+    fi
+}
+
+
+# whenever a node starts, checks if swap is active
+before_node_starts__00_check_swap() {
+    warn_about_swap
+}
+
+kubeadmCommonIgnoredPreflightChecks() {
+    # We add  SystemVerification due to ubuntu 19.04 using a too 'new' kernel ,SystemVerification
+    # https://github.com/clearlinux/distribution/issues/528
+    local ignore="FileContent--proc-sys-net-bridge-bridge-nf-call-iptables"
+    if verlt "$K8S_VERSION" "1.14" && verlt "5" "$(uname -r)"; then
+        ignore="$ignore,SystemVerification"
+    fi
+
+    # Ignore swap checks. We'll do our own warning part.
+    ignore="$ignore,Swap"
+
+    echo "$ignore"
+
+}
+
 
 launchK8SContainer() {
     local container="$1"
@@ -105,7 +149,7 @@ launchK8SContainer() {
         runFunctions '^init_before_worker_starts__'  "$container" "$masterContainer"
     fi
 
-    # things that are running always before a container is started, wether after being created or during its normal
+    # things that are running always before a container is started, after being created or during its normal
     # lifetime
     runFunctions '^before_node_starts__' "$masterContainer" "$container"
 
@@ -208,7 +252,15 @@ installCniNetwork() {
     local container=$1
 
     # networking cni plugin
-    lxcExecBash "$container" "export KUBECONFIG=/etc/kubernetes/admin.conf ; kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+    local revision
+
+    # A little bit arbitrary...
+    if verlt "$K8S_VERSION" "1.14"; then
+        revision="v0.12.0"
+    else
+        revision="master"
+    fi
+    lxcExecBash "$container" "export KUBECONFIG=/etc/kubernetes/admin.conf ; kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/$revision/Documentation/kube-flannel.yml"
 }
 
 

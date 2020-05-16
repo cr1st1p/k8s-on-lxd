@@ -454,7 +454,12 @@ lxd_proxy_setup
 
 install_kubectl
 
-info "Disabling swap"
-swapoff -a
+if false ; then
+    info "Disabling swap"
+    swapoff -a
+else
+    info "Activating swap - to test behavior"
+    swapon -a
+fi 
 info "== done with setup pre-req =="
 

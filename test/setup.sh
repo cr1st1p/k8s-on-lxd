@@ -11,7 +11,6 @@ n=t2
 source /etc/environment
 source /etc/profile
 
-set -x 
 
 setup_parameters=()
 master_parameters=(--name "$n")
