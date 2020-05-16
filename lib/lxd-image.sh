@@ -296,6 +296,8 @@ insideLxdImage__12_kubernetes_systemd() {
 
     # don't forget to escape $ (\$)
     local d=/etc/systemd/system
+    
+    local KUBELET_CONF_FILE=
 
     test -d "$d/kubelet.service.d" || mkdir -p "$d/kubelet.service.d"
     cat > "$d/kubelet.service.d/10-kubeadm.conf" <<EOS
@@ -330,7 +332,9 @@ EOS
         # already moved
         test -f "$d/kubelet.service"
     fi
+
     
+
     systemctl daemon-reload
     systemctl enable kubelet.service
     systemctl stop kubelet.service

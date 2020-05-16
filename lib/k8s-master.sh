@@ -112,9 +112,25 @@ launch_master__04_create_kubeadm_config() {
     # let's prepare kubeadm config - we need more than command args can support
     # FIXME: MaxPerCode still not taken into account
     # FIXME: and probably also not podSubnet. Also, can not combine --config and cmd line parameters
+    # To see the defaults: 
+    #  kubeadm config print init-defaults --component-configs KubeletConfiguration  
+
     cfg=$(mktemp)
+
+    local KUBEADM_API_VERSION
+    local KUBELET_API_VERSION
+
+    if verlt "$K8S_VERSION" "1.18" ; then
+        KUBEADM_API_VERSION=kubeadm.k8s.io/v1beta1
+        KUBELET_API_VERSION=kubelet.config.k8s.io/v1beta1
+    else
+        KUBEADM_API_VERSION=kubeadm.k8s.io/v1beta2
+        KUBELET_API_VERSION=kubelet.config.k8s.io/v1beta1
+    fi
+    
     cat >"$cfg" << EOS
-apiVersion: kubeadm.k8s.io/v1beta1
+apiVersion: $KUBEADM_API_VERSION
+kind: InitConfiguration
 bootstrapTokens:
 - groups:
   - system:bootstrappers:kubeadm:default-node-token
@@ -123,17 +139,19 @@ bootstrapTokens:
   usages:
   - signing
   - authentication
-kind: InitConfiguration
 # Supported from v1beta2 onward (kubeadm 1.15+)
 #nodeRegistration:
 #  ignorePreflightErrors:
 #  - FileContent--proc-sys-net-bridge-bridge-nf-call-iptables
 ---
+kind: ClusterConfiguration
+apiVersion: $KUBEADM_API_VERSION
 apiServer:
   timeoutForControlPlane: 4m0s
-apiVersion: kubeadm.k8s.io/v1beta1
+  certSANs:
+  - ${prefix}-master.lxd
+kubernetesVersion: v${K8S_VERSION}
 certificatesDir: /etc/kubernetes/pki
-kind: ClusterConfiguration
 networking:
   dnsDomain: cluster.local
   podSubnet: 10.244.0.0/16
@@ -143,6 +161,11 @@ kind: KubeProxyConfiguration
 Conntrack:
   MaxPerCore: 0
 ClusterCIDR: 10.244.0.0/16
+---
+apiVersion: $KUBELET_API_VERSION
+kind: KubeletConfiguration
+failSwapOn: false
+---
 EOS
        
     lxc file push "$cfg" "$container/$TMP_KUBEADM_CONFIG"
@@ -157,22 +180,18 @@ launch_master__08_run_kubeadm() {
     info "  running kubeadm"
 
 
-    # We add  SystemVerification due to ubuntu 19.04 using a too 'new' kernel ,SystemVerification
-    # https://github.com/clearlinux/distribution/issues/528
-    local ignore=FileContent--proc-sys-net-bridge-bridge-nf-call-iptables
-    if verlt "$K8S_VERSION" "1.14" && verlt "5" "$(uname -r)"; then
-        ignore="$ignore,SystemVerification"
-    fi
+    local ignore
+    ignore=$(kubeadmCommonIgnoredPreflightChecks)
 
-    
     kubeAdmParams=("--ignore-preflight-errors=$ignore")
     
+    #kubeAdmParams+=(--token "$token" --token-ttl 0)
+    #kubeAdmParams+=(--pod-network-cidr 10.244.0.0/16)
+    #kubeAdmParams+=(--kubernetes-version "$K8S_VERSION")
+    
+    kubeAdmParams+=(--config "$TMP_KUBEADM_CONFIG")
 
-    kubeAdmParams+=(--token "$token" --token-ttl 0)
-    kubeAdmParams+=(--pod-network-cidr 10.244.0.0/16)
-    kubeAdmParams+=(--kubernetes-version "$K8S_VERSION")
-    #kubeAdmParams+=(--config "$TMP_KUBEADM_CONFIG")
-    kubeAdmParams+=(--apiserver-cert-extra-sans "${prefix}-master.lxd")
+    #kubeAdmParams+=(--apiserver-cert-extra-sans "${prefix}-master.lxd")
 
     lxcExec "$container" kubeadm init "${kubeAdmParams[@]}"
     lxcExec "$container" rm "$TMP_KUBEADM_CONFIG"

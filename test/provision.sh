@@ -24,7 +24,5 @@ $p/test/setup-pre-req.sh
 # strictly for these virtual machines, let's try to use proxy also for the lxd images
 # TODO: change ubuntu remote url
 
-set -x
-
 echo "Will now start the script"
 exec su -s /bin/bash -l vagrant -c "$p/test/setup.sh $*"
