@@ -26,15 +26,16 @@ For the sake of explaining our storage addons, we'll try to say that storage typ
 
   Examples:
 
-  | Name                                         | Ephemeral? | Forced node @first                | Forced node @later                | Local2Node |
-  | -------------------------------------------- | ---------- | --------------------------------- | --------------------------------- | ---------- |
-  | awsElasticBlockStore, cephfs, glusterfs, nfs | no         | no                                | no                                | no         |
-  | emptyDir                                     | yes        | no                                | no                                | yes        |
-  | hostPath                                     | no         | no (but **you** probably want it) | no (but **you** probably want it) | yes        |
-  | local                                        | no         | no                                | yes                               | yes        |
-  | Our addons:                                  |            |                                   |                                   |            |
-  | local-storage-class                          | no         | no                                | yes                               | yes        |
-
+  | Name                                         | Ephemeral? | Forced node @first                | Forced node @later                | Local2Node     |
+  | -------------------------------------------- | ---------- | --------------------------------- | --------------------------------- | -------------- |
+  | awsElasticBlockStore, cephfs, glusterfs, nfs | no         | no                                | no                                | no             |
+  | emptyDir                                     | yes        | no                                | no                                | yes            |
+  | hostPath                                     | no         | no (but **you** probably want it) | no (but **you** probably want it) | yes            |
+  | local                                        | no         | no                                | yes                               | yes            |
+  | Our addons:                                  |            |                                   |                                   |                |
+  | local-storage-class                          | no         | no                                | yes                               | yes            |
+  | nfs-client-provisioner                       | no         | no                                | no                                | yes, to master |
+  
   
 
 Each type of storage has its Pro and Cons, of course.
@@ -44,5 +45,5 @@ With your local LXD clusters you don't have limits on what to use, but to make i
 If you want to get access to the data stored in *nodes* ('*Local2Node*' == yes), you either:
 
 - enter the container and check it, 
-- or, you can mount the directories from the nodes to your real host machine so that you don't need to run commands like ```lxc shell mysite-worker-2```  This is what [local-storage-class](../addons/local-storage-class/README.md) is doing.
+- or, you can mount the directories from the nodes to your real host machine so that you don't need to run commands like ```lxc shell mysite-worker-2```  This is what [local-storage-class](../addons/local-storage-class/README.md) and [nfs-client-provisioner](../addons/nfs-client-provisioner/README.md) are doing.
 

@@ -1,0 +1,206 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: nfs-client-provisioner-runner
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+  - update
+  - patch
+
+---
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: run-nfs-client-provisioner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nfs-client-provisioner-runner
+subjects:
+- kind: ServiceAccount
+  name: nfs-client-provisioner
+  namespace: nfs-client-provisioner
+
+---
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: nfs-client-provisioner
+  namespace: nfs-client-provisioner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+      release: nfs-client-provisioner
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app: nfs-client-provisioner
+        release: nfs-client-provisioner
+    spec:
+      containers:
+      - env:
+        - name: PROVISIONER_NAME
+          value: cluster.local/nfs-client-provisioner
+        - name: NFS_SERVER
+          value: NFS_SERVER_REPLACE_ME
+        - name: NFS_PATH
+          value: /mnt/nfs-export
+        image: quay.io/external_storage/nfs-client-provisioner:v3.1.0-k8s1.11
+        imagePullPolicy: IfNotPresent
+        name: nfs-client-provisioner
+        volumeMounts:
+        - mountPath: /persistentvolumes
+          name: nfs-client-root
+      serviceAccountName: nfs-client-provisioner
+      volumes:
+      - name: nfs-client-root
+        nfs:
+          path: /mnt/nfs-export
+          server: NFS_SERVER_REPLACE_ME
+
+---
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: leader-locking-nfs-client-provisioner
+  namespace: nfs-client-provisioner
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+
+---
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: leader-locking-nfs-client-provisioner
+  namespace: nfs-client-provisioner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: leader-locking-nfs-client-provisioner
+subjects:
+- kind: ServiceAccount
+  name: nfs-client-provisioner
+  namespace: nfs-client-provisioner
+
+---
+
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: nfs-client-provisioner
+  namespace: nfs-client-provisioner
+
+---
+
+
+---
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    app: nfs-client-provisioner
+    chart: nfs-client-provisioner-1.2.9
+    heritage: ddk8s
+    release: nfs-client-provisioner
+  name: nfs-client
+parameters:
+  archiveOnDelete: 'True'
+provisioner: cluster.local/nfs-client-provisioner
+reclaimPolicy: Retain
+
+---
+

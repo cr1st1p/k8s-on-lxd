@@ -1,0 +1,51 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: nginx-nfs-client-test-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-nfs-client-test
+  template:
+    metadata:
+      labels:
+        app: nginx-nfs-client-test
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: html
+          readOnly: true
+      volumes:
+      - name: html
+        persistentVolumeClaim:
+          claimName: nginx-nfs-client-test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-nfs-client-test
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10M
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nfs-client-test
+spec:
+  selector:
+    app: nginx-nfs-client-test
+  ports:
+    - name: web
+      port: 80
+      protocol: TCP
+      targetPort: 80
