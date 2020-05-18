@@ -109,6 +109,12 @@ launch_worker__10_setup_network() {
     setupCniNetwork "$container" worker
 }
 
+launch_worker__12_push_shell_files() {
+    local container=$2
+    lxdPushShellFiles "$container"
+}
+
+
 launch_worker__20_wait_node() {
     prefix=$1
     masterContainer=$2
@@ -132,7 +138,7 @@ launch_worker__30_change_auth_mode() {
 messages_worker_node__10_hostpath() {
     info "You might want to mount a disk with a local path, to be used as 'hostpath' storage in your containers."
     info "   like: lxc config device add $container data disk path=/data source=/home/USER/PROJECT/storage"
-    info "   Or, better, use the 'local-storag-class' addon"
+    info "   Or, better, use one of the '${BOLD_START}local-storag-class${COLOR_END}', '${BOLD_START}nfs-client-provisioner${COLOR_END}' addons"
 }
 
 
@@ -151,18 +157,18 @@ launchWorker() {
     lastWorkerId=$(lxc config get "$masterContainer" user.worker.lastId)
 
     (( lastWorkerId = "$lastWorkerId" + 1 ))
-    lxc config set "$masterContainer" user.worker.lastId $lastWorkerId
+    lxc config set "$masterContainer" user.worker.lastId "$lastWorkerId"
     
     local container="$prefix-worker-${lastWorkerId}"
     
-    info "Creating a new worker node: $container"
+    info "Creating a new worker node: $BOLD_START$container$COLOR_END"
 
     lxdCheckProfileVersion
     
     runFunctions '^launch_worker__' "$prefix" "$masterContainer" "$container"
 
-    info "Node '$container' added!"
-    info ""
+    info "${EMOTICON_HAPPY}Node '$container' added!"
+    echo
     runFunctions '^messages_worker_node__' "$prefix" "$masterContainer" "$container"
 
     enjoyMsg    

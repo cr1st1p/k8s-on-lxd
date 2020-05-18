@@ -1,16 +1,39 @@
 # shellcheck shell=bash
 
 info() {
-    echo "INFO: " "$@"
+    if terminalSupportsColors; then
+        tput bold
+        echo -n "  INFO: "
+        tput sgr0
+        echo "$@"
+    else
+        echo "INFO: " "$@"
+    fi
 }
 
 warn() {
-    echo "WARN: " "$@"
+    if terminalSupportsColors; then
+        tput smso
+        echo -n "${EMOTICON_WARNING}WARN:"
+        tput sgr0
+        echo " " "$@"
+        
+    else
+        echo "WARN: " "$@"
+    fi
 }
 
 
 err() {
-    echo "ERR:  " "$@"
+    if terminalSupportsColors; then
+        tput smso; tput setaf 1
+        echo -n "${EMOTICON_FATAL}ERR:"
+        tput sgr0
+        echo " " "$@"        
+        
+    else
+        echo "ERR : " "$@"
+    fi
 }
 
 bail() {
@@ -32,7 +55,7 @@ checkForCommand() {
 
     if ! commandExists "$1" ; then
         err "Program '$prog' not found. We need it to continue."
-        err "Install it by yourself, or you can run 'sudo test/setup-pre-req.sh'"
+        err "${EMOTICON_WORKAROUND}Install it by yourself, or you can run 'sudo test/setup-pre-req.sh'"
         err "to install the minimal dependencies"
         exit 1
     fi
@@ -166,4 +189,50 @@ ensureClusterNameIsSet() {
     if [ -z "$CLUSTER_NAME" ]; then
         bail "Need to give me the name prefix to use, via -n NAME"
     fi
+}
+
+
+# empty means unchecked yet
+export __TERMINAL_SUPPORTS_COLORS=
+
+export BOLD_START=""
+export COLOR_END=""
+
+export EMOTICON_CONFUSED=""
+export EMOTICON_READY=""
+export EMOTICON_FATAL=""
+export EMOTICON_HAPPY=""
+export EMOTICON_STOP=""
+export EMOTICON_WAITING=""
+export EMOTICON_WARNING=""
+export EMOTICON_WORKAROUND=""
+export EMOTICON_THUMBS_UP=""
+
+detectTerminalColorSupport() {
+    if [[ "$TERM" = *"color"* ]] || [[ "$COLORTERM" = *"truecolor"* ]] || [[ "$COLORTERM" = *"24bit"* ]] \
+        || [[ "$COLORTERM" = *"yes"* ]]; then
+        __TERMINAL_SUPPORTS_COLORS=1
+
+        BOLD_START="$(tput bold)"
+        COLOR_END="$(tput sgr0)"
+
+        EMOTICON_CONFUSED="😕 "
+        EMOTICON_READY="🏄 "
+        EMOTICON_FATAL="💣 "
+        EMOTICON_HAPPY="😄 "
+        EMOTICON_STOP="✋ "
+        EMOTICON_WAITING="⌛ "
+        EMOTICON_WORKAROUND="👉 "
+        EMOTICON_WARNING="❗"
+        EMOTICON_THUMBS_UP="👍 "
+    else
+        __TERMINAL_SUPPORTS_COLORS=0
+    fi
+}
+
+terminalSupportsColors() {
+    [ -n "$__TERMINAL_SUPPORTS_COLORS" ] || detectTerminalColorSupport
+    [ "$__TERMINAL_SUPPORTS_COLORS" == "1" ] || return 1
+    # yes, it supports colors. Unix style answer
+    return 0 
 }

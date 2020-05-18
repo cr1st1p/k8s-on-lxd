@@ -104,7 +104,11 @@ _addon_nfs_client_provisioner_prepare_master_container() {
 
     # DO NOT forget to backquote $
     lxcExecBashCommands "$container" <<EOS
-DEBIAN_FRONTEND=noninteractive apt-get install -qq -y nfs-kernel-server
+source /usr/local/lib/shell/general.sh    
+source /usr/local/lib/shell/apt.sh    
+
+apt_update_now
+apt_install nfs-kernel-server
 
 d="/mnt/nfs-export"
 test -d "\$d" || mkdir -p "\$d"

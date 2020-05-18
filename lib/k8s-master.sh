@@ -205,6 +205,12 @@ launch_master__10_setup_network() {
     setupCniNetwork "$container" master
 }
 
+launch_master__12_push_shell_files() {
+    local container=$2
+    lxdPushShellFiles "$container"
+}
+
+
 launch_master__20_wait_node_ready() {
     local prefix=$1
     local container=$2
@@ -269,7 +275,7 @@ launchMaster() {
     local container
     container=$(master_container "$prefix")
 
-    info "Creating a master node: $container"
+    info "Creating a master node: ${BOLD_START}$container${COLOR_END}"
 
     lxdCheckProfileVersion
     
@@ -277,8 +283,8 @@ launchMaster() {
 
     addUserKubectlConfig "$prefix"
 
-    info "Node '$container' added!"
-    info ""
+    info "${EMOTICON_HAPPY}Node '$container' added!"
+    echo
     runFunctions '^messages_master_node__' "$prefix" "$container"
 
     enjoyMsg

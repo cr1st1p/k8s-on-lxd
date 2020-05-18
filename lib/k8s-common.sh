@@ -188,23 +188,10 @@ waitNodeReady() {
     local container=$1
     local nodeName=$2
 
-    info "Waiting for kubernetes node to be declared as ready"
+    info "${EMOTICON_WAITING}Waiting for kubernetes node to be declared as ready"
     
     lxcExecBashCommands "$container" <<EOS
-    
-info() {
-    echo "INFO: " \$@
-}
-warn() {
-    echo "WARN: " \$@
-}
-err() {
-    echo "ERR:  " "\$@"
-}
-bail() {
-    err "\$@"
-    exit 1
-}
+source /usr/local/lib/shell/general.sh    
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 for i in \$(seq 1 60) ; do
@@ -220,17 +207,17 @@ for i in \$(seq 1 60) ; do
         bail "Fix the problem, remove this node, and recreate it"
     fi
 
-    info "node $nodeName 'ready status': \$ready. Sleeping 5s"
+    echo "      ${EMOTICON_WAITING}node $nodeName 'ready status': \$ready. Sleeping 5s"
     sleep 5s
 done
 
 if [ "\$ready" != '"True"' ]; then
     warn "After many tries, node is still not declared as ready. You should check the logs inside it."
-    warn "Do an 'lxc exec \$nodeName journalctl'"
+    warn "${EMOTICON_WORKAROUND}Do an 'lxc exec \$nodeName journalctl'"
     warn "One possible reason: disk pressure"
     exit -1
 else
-    info "node $nodeName is ready."
+    info "${EMOTICON_READY}node $nodeName is ready."
 fi
 
 EOS
@@ -297,8 +284,8 @@ kubeletChangeAuthMode() {
 
 
 enjoyMsg() {
-    info "Enjoy your kubernetes experience!"
-    info "Feel free to report bugs, feature requests and so on, at https://github.com/cr1st1p/k8s-on-lxd/issues"
+    info "${EMOTICON_HAPPY}Enjoy your kubernetes experience!"
+    info "${EMOTICON_THUMBS_UP}Feel free to report bugs, feature requests and so on, at https://github.com/cr1st1p/k8s-on-lxd/issues"
 }
 
     

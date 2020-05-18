@@ -97,7 +97,7 @@ lxdWaitIp() {
     while true ; do
         ip=$(lxdGetIp "$container")
         test -z "$ip" || break
-        echo -n "Sleeping $N_SECONDS seconds to have the container get its IP..."
+        echo -n "${EMOTICON_WAITING}Sleeping $N_SECONDS seconds to have the container get its IP..."
         sleep $N_SECONDS
         echo
     done

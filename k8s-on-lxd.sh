@@ -136,21 +136,30 @@ deleteAll() {
 
 
 usage() {
+    local BOLD_START=""
+    local COLOR_END=""
+    if terminalSupportsColors; then
+        BOLD_START=$(tput smso; tput rev)
+        COLOR_END=$(tput sgr0)
+    fi
     cat <<EOS
-$SCRIPT_NAME: Running multiple Kubernetes clusters, multi-node, multiple 
-versions... on a single machine. Development purpose only.
+${BOLD_START}$SCRIPT_NAME${COLOR_END}: Running lightweight ${BOLD_START}multiple${COLOR_END} Kubernetes clusters, ${BOLD_START}multi${COLOR_END}-node, multiple ${BOLD_START}versions${COLOR_END}... on a single machine. 
+For local development purposes.
 
 Usage: $SCRIPT_NAME options...
 
-    -n,--name= NAME : sets the name prefix to use for nodes. Nodes will be named NAME-master, NAME-worker-1, NAME-worker-2, etc
+    -n,--name= NAME : sets the name prefix to use for nodes. Nodes will be named
+         NAME-master, NAME-worker-1, NAME-worker-2, etc
     --k8s-version VERSION : which kubernetes version to use. Default is $K8S_VERSION_DEFAULT
         Usable during setup phase, and when launching a master node.
+    --no-colour,--no-color : disable use of colors/bold text/emoticons
     -s,--setup:     to prepare lxd setup + an lxd image 
     -m, --master :  to create and start a master node, named NAME-master
-    -w, --worker :  to create and start a new worker node, named NAME-worker-N, where N is a number NOT used yet
+    -w, --worker :  to create and start a new worker node, named NAME-worker-N, 
+        where N is a number NOT used yet
 
-    -c,--set-config : to update your local kubectl config to access the LXD k8s cluster
-            This is done also during creation of the master node.
+    -c,--set-config : to update your local kubectl config to access the LXD k8s 
+        cluster. This is done also during creation of the master node.
 
     -S,--stop :    stop all the containers in the named cluster (master and workers)
     -R,--run :      start all the containers for the named cluster (master and workers)
@@ -159,7 +168,7 @@ Usage: $SCRIPT_NAME options...
     Others:
     --no-check-lost-found: during setup phase, do not check for presence of lost+found directory
 
-    Addons:
+    ${BOLD_START}Addons${COLOR_END}:
     --addon ADDON_NAME  : always needed
     --addon-info : it will display some information from the addon (if provided by the addon)
     --addon-list : list the addons
@@ -181,6 +190,13 @@ checkAddonArgument() {
 }
 
 
+beforeCommand() {
+    terminalSupportsColors
+    ensureClusterNameIsSet            
+    host_check_minimum_requirements
+}
+
+
 declare -i processedArgumentsCount=0
 
 processMainArguments() {
@@ -198,25 +214,33 @@ processMainArguments() {
             processedArgumentsCount=1
             return 0
             ;;
-
+        --no-color|--no-colors|--no-colour|--no-colours)
+            export __TERMINAL_SUPPORTS_COLORS=0
+            processedArgumentsCount=1
+            return 0
+            ;;
         # -v|--verbose)
         #     export VERBOSE="true"
         #     shift
         #     ;;
         -s|--setup)
+            terminalSupportsColors
             host_check_minimum_requirements
             prepareLxd
             exit 0
             ;;
         --setup-inside-lxd-image) # internal command
+            terminalSupportsColors
             runFunctions "^insideLxdImage__"
             exit 0
             ;;
         --setup-inside-lxd-image-worker) # internal command
+            terminalSupportsColors
             runFunctions "^insideLxdImage_worker__"
             exit 0
             ;;
         --setup-inside-lxd-image-master) # internal command
+            terminalSupportsColors
             runFunctions "^insideLxdImage_master__"
             exit 0
             ;;
@@ -227,8 +251,7 @@ processMainArguments() {
             return 0
             ;;
         -m|--master)
-            ensureClusterNameIsSet
-            host_check_minimum_requirements
+            beforeCommand
             launchMaster "$CLUSTER_NAME"
             exit 0
             ;;
@@ -239,31 +262,28 @@ processMainArguments() {
             return 0
             ;;
         -w|--worker)
-            ensureClusterNameIsSet
-            host_check_minimum_requirements
+            beforeCommand
             launchWorker "$CLUSTER_NAME"
             exit 0
             ;;
         -c|--set-config)
-            ensureClusterNameIsSet
-            host_check_minimum_requirements
+            beforeCommand
             addUserKubectlConfig "$CLUSTER_NAME"
             exit 0
             ;;
 
         -S|--stop)
-            ensureClusterNameIsSet
-            host_check_minimum_requirements
+            beforeCommand
             stopAll "$CLUSTER_NAME"
             exit 0
             ;;
         -R|--run)
-            host_check_minimum_requirements
+            beforeCommand
             runAll "$CLUSTER_NAME"
             exit 0
             ;;
         -D|--delete)
-            host_check_minimum_requirements
+            beforeCommand
             deleteAll "$CLUSTER_NAME"
             exit 0
             ;;
@@ -306,6 +326,7 @@ processMainArguments() {
             n="addon_${addon}_$2"
             n=${n//-/_}
             isFunction "$n" || bail "Addon does not expose that functionality"
+            terminalSupportsColors
             $n
             exit 0           
             ;;
@@ -353,5 +374,7 @@ do
     esac
 done
 
-warn "Let me know what to do. See below." # FIXME: better message
+warn "${EMOTICON_CONFUSED}Let me know what to do. See below." # FIXME: better message
+printf "\n\n"
+
 usage
