@@ -209,6 +209,11 @@ export EMOTICON_WORKAROUND=""
 export EMOTICON_THUMBS_UP=""
 
 detectTerminalColorSupport() {
+    if ! commandExists tput; then
+        __TERMINAL_SUPPORTS_COLORS=0
+        return 0
+    fi
+
     if [[ "$TERM" = *"color"* ]] || [[ "$COLORTERM" = *"truecolor"* ]] || [[ "$COLORTERM" = *"24bit"* ]] \
         || [[ "$COLORTERM" = *"yes"* ]]; then
         __TERMINAL_SUPPORTS_COLORS=1
