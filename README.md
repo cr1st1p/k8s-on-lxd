@@ -133,7 +133,18 @@ Let's run the one-time setup phase. Can take some time (minutes)
 Important: double check what version it will install. You can force a specific version, by using ```--k8s-version X.Y.Z``` Please note that the revision part ("Z") of the version might not be the exact one installed.
 
 On the reference desktop, it takes 6-7 minutes to have the images ready.
+
 Note that because the script brings in the docker images used for Kubernete's control plane (Apiserver, etcd, and so on), the image size will be quite big: 1.2-1.7Gb
+
+If you want to speed things up - you could try to copy first the images built by you/friend from a different LXD remote and then run the setup. Something like:
+
+```bash
+lxc image copy --copy-aliases friend-computer:k8s-1-18-2-worker local:
+lxc image copy --copy-aliases friend-computer:k8s-1-18-2-master local:
+./k8s-on-lxd.sh --setup
+```
+
+
 
 ## Creating a cluster
 ### Master node

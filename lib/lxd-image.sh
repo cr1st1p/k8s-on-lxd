@@ -111,6 +111,17 @@ prepareLxdImage__01_start_container() {
     local container=$1
 
     prepareLxdImageStartContainer $ubuntu_image_local "$container"
+    lxdPushShellFiles "$container"
+}
+
+
+lxdPushShellFiles() {
+    local container="$1"
+
+    lxcExecDirect "$container" mkdir -p /usr/local/lib/shell
+    for f in apt.sh general.sh; do
+        lxc file push "$SCRIPT_PATH/lib/$f" "$container/usr/local/lib/shell/"
+    done
 }
 
 
