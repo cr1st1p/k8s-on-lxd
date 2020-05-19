@@ -213,7 +213,7 @@ done
 
 if [ "\$ready" != '"True"' ]; then
     err "After many tries, node is still not declared as ready. You should check the logs inside it."
-    warn "${EMOTICON_WORKAROUND}Check https://github.com/cr1st1p/k8s-on-lxd/docs/troubleshooting.md#your-node-fails-to-be-declared-ready"
+    warn "${EMOTICON_WORKAROUND}Check https://github.com/cr1st1p/k8s-on-lxd/blob/master/docs/troubleshooting.md#your-node-fails-to-be-declared-ready"
     cat << EOS2
 Some possible things to do:
 - check for free disk space (min 10%-20%)
