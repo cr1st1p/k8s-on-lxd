@@ -106,6 +106,9 @@ You should already have preinstalled things like: kubectl, lxd (doh!) plus a few
 The script will check for them before running. In case you do not know how to install them for your particular distro, you can try to run ```test/setup-pre-req.sh```
 
 
+## Troubleshooting
+Some common issues you could encounter are tracked into a separate [document](docs/troubleshooting.md)
+
 ## Command line parameters
 Script's parameter order: it is important (for now). That is, give necessary parameters before the one telling the script what to do.
 

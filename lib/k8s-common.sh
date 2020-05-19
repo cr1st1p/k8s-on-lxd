@@ -212,9 +212,15 @@ for i in \$(seq 1 60) ; do
 done
 
 if [ "\$ready" != '"True"' ]; then
-    warn "After many tries, node is still not declared as ready. You should check the logs inside it."
-    warn "${EMOTICON_WORKAROUND}Do an 'lxc exec \$nodeName journalctl'"
-    warn "One possible reason: disk pressure"
+    err "After many tries, node is still not declared as ready. You should check the logs inside it."
+    warn "${EMOTICON_WORKAROUND}Check https://github.com/cr1st1p/k8s-on-lxd/docs/troubleshooting.md#your-node-fails-to-be-declared-ready"
+    cat << EOS2
+Some possible things to do:
+- check for free disk space (min 10%-20%)
+- enter container (lxc shell $container) and check the logs (journalctl)
+- check for failed pods, from inside the container:
+    kubectl --kubeconfig /etc/kubernetes/admin.conf get pod --all-namespaces
+EOS2
     exit -1
 else
     info "${EMOTICON_READY}node $nodeName is ready."
