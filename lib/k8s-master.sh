@@ -82,7 +82,7 @@ init_before_master_starts__10_set_eth_fixed_ip() {
         local ip
         ip="$base.$i"
 
-        if ! grep "^$ip\$" "$ftmp" ; then
+        if ! grep -q "^$ip\$" "$ftmp" ; then
             lxdSetFixedIp "$container" "$ip" "$intf"
             rm "$ftmp"
             return 0

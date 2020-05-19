@@ -1,10 +1,10 @@
 # Troubleshooting your setup
-(work in progress)
-
+- [Your node fails to be declared ready](#your-node-fails-to-be-declared-ready)
+- [Proxy](proxy)
 
 ## Your node fails to be declared ready
 ### When
-In case k8s-on-lxd.sh --master | --worker ends in error with something like
+In case ```k8s-on-lxd.sh --master | --worker``` ends in error with something like
 ```
 After many tries, node is still not declared as ready. You should check the logs inside it.
 ```
@@ -17,7 +17,7 @@ Usually these "important" places are:
 - /var/lib/kubelet
 - /var/lib/docker
 
-Run of your computer a ```df -h```
+Run on your computer a ```df -h```
 Also, enter the container via an ```lxc shell CONTAINER``` and run in there ```df -h``` - this is better since it could show a lot less entries :-)
 
 ### Check logs
@@ -45,7 +45,7 @@ kube-system   kube-flannel-ds-amd64-9hcp7               0/1     Init:ImagePullBa
 kube-system   kube-proxy-8qjqx                          1/1     Running                 0          3m11s
 kube-system   kube-scheduler-cluster1-master            1/1     Running                 0          3m22s
 ```
-Note: the pending coredns are ok for now - they don't have an available **worker** node to run on.
+Note: the pending *coredns* pods are ok for now - they don't have an available **worker** node to run on.
 But, you see that kube-flannel had some problems.
 
 Let's see what's up with that pod:
@@ -65,11 +65,11 @@ Start Time:   Tue, 19 May 2020 10:47:26 +0000
   Normal   BackOff    66s (x7 over 3m24s)  kubelet, cluster1-master  Back-off pulling image "quay.io/coreos/flannel:v0.12.0-amd64"
 ```
 
-Hm, so it failed to download the image?!? Indeed, I got "lucky" and RedHat's quay.io had a temporary partial outage during this test, but you got how to check.
+Hm, so it failed to download the image?!? Indeed, I got "lucky" and RedHat's quay.io had a temporary partial outage during this test, but at least I had a real life example to show you :-)
 
 ### Check that the minimal number of pods are running
 Run inside the container:
-```
+```shell
 root@cluster1-master:~# kubectl --kubeconfig /etc/kubernetes/admin.conf   get pod --all-namespaces
 ```
 You should find running pods for:
@@ -82,3 +82,19 @@ You should find running pods for:
 
 For example, at some point I could not find kube-flannel. I found out that it was because of incompatible versions of deployment manifest for that
 particular kubernetes version.
+
+
+
+## Proxy
+The script has an addon that is detecting and handling you using a proxy. 
+But issues could still pop up here and there, so the addon will give you some warnings
+and specific instruction on what to pay attention to.
+
+For example, depending where the proxy is running, it might not see your LXD containers due to networking. So you have to ensure your *kubectl* commands are not using it, for example.
+
+There are 2 ways:
+- add to the **no_proxy** environment variable the while CIDR range of your LXD containers, so that (some) programs will NOT use the proxy for those targets. I'm saying "some" because that environment variable and format is not very standardized.
+- unset **http_proxy** for when you run kubectl/whatever program:
+```shell
+http_proxy= https_proxy= kubectl --context lxd-my-second-cluster ....
+```
