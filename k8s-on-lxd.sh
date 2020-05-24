@@ -7,10 +7,12 @@ set -e # bail out on errors
 # Author: Cristian Posoiu cristi@posoiu.net
 #
 
+PROG="${BASH_SOURCE[0]}"
+[ ! -h "$PROG" ] || PROG=$(readlink -f "$PROG")
 
-SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_PATH="$( cd "$( dirname "$PROG" )" && pwd )"
 export SCRIPT_PATH
-SCRIPT_NAME="$( basename "${BASH_SOURCE[0]}")"
+SCRIPT_NAME="$( basename "$PROG")"
 export SCRIPT_NAME
 
 DEBUG=
