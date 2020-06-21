@@ -14,7 +14,9 @@ setup_lxd__00_ensure_it_exists() {
 setup_lxd__01_check_proxy_and_ubuntu_url() {
     #shellcheck disable=SC2154
     [ -n "$http_proxy" ] || return 0
-
+    if ! lxdRemoteIsLocal; then
+        return 0
+    fi
     local url
     url=$(lxc remote list | grep -E '\subuntu\s' | cut -f 3 -d '|' | sed -E -e 's@ +@@gi')
     if [[ "$url" == "https:"* ]]; then
@@ -40,12 +42,12 @@ setup_lxd__02_storage_dir_checks() {
 
     # let's see where the default storage is created, to create near it
     local storage_base_dir
-    storage_base_dir="$(lxc query '/1.0/storage-pools/default' 2>/dev/null | jq -r '.config.source')"
+    storage_base_dir="$(lxc query $LXD_REMOTE/1.0/storage-pools/default 2>/dev/null | jq -r '.config.source')"
     if [ -z "$storage_base_dir" ]; then
         # no 'default' pool. Will take first one around.
         local url
-        url=$(lxc query "/1.0/storage-pools" | jq -r '.[0]')
-        storage_base_dir="$(lxc query "$url" 2>/dev/null | jq -r '.config.source')"
+        url=$(lxc query "$LXD_REMOTE/1.0/storage-pools" | jq -r '.[0]')
+        storage_base_dir="$(lxc query "$LXD_REMOTE$url" 2>/dev/null | jq -r '.config.source')"
 
     fi
     storage_base_dir=$(dirname  "$storage_base_dir")
@@ -87,7 +89,7 @@ setup_lxd__02_storage_dir_checks() {
 
     # check for a 'dir' named storage, of type 'dir'
     local dir_driver
-    dir_driver=$(lxc query "/1.0/storage-pools/$STORAGE_DIR_NAME" 2>/dev/null | jq -r '.driver')
+    dir_driver=$(lxc query "$LXD_REMOTE/1.0/storage-pools/$STORAGE_DIR_NAME" 2>/dev/null | jq -r '.driver')
     if [ -n "$dir_driver" ]; then
         # present. Check parameters
         if [ "$dir_driver" != "dir" ]; then
@@ -102,7 +104,7 @@ setup_lxd__02_storage_dir_checks() {
     else
         # storage does not exist. Create it
         info "Creating storage $STORAGE_DIR_NAME of type 'dir' from path $DIR_STORAGE_BASE_DIR"
-        lxc storage create dir dir source="$DIR_STORAGE_BASE_DIR"
+        lxc storage create "${LXD_REMOTE}dir" dir source="$DIR_STORAGE_BASE_DIR"
     fi
 }
 
@@ -214,9 +216,9 @@ __setup_lxd_network_device() {
     local url="/1.0/networks/$name"
 
     local cidr
-    cidr=$(lxc query "$url" | jq -r '.config["ipv4.address"]')
+    cidr=$(lxc query "$LXD_REMOTE$url" | jq -r '.config["ipv4.address"]')
     local dhcp_ranges
-    dhcp_ranges=$(lxc query "$url" 2>/dev/null | jq -r '.config["ipv4.dhcp.ranges"]')
+    dhcp_ranges=$(lxc query "$LXD_REMOTE$url" 2>/dev/null | jq -r '.config["ipv4.dhcp.ranges"]')
 
     # let's check on some simpler cases:
     if [[ "$cidr" == *".1/24" ]]; then
@@ -225,7 +227,7 @@ __setup_lxd_network_device() {
         expected_dhcp_ranges="$base.50-$base.254"
 
         if [ "$dhcp_ranges" = "null" ]; then
-            lxc network set "$name" ipv4.dhcp.ranges "$expected_dhcp_ranges"
+            lxc network set "$LXD_REMOTE$name" ipv4.dhcp.ranges "$expected_dhcp_ranges"
             info "   used $expected_dhcp_ranges"
             return 0
         fi

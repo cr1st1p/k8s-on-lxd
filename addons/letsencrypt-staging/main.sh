@@ -20,7 +20,7 @@ EOS
 
 _addon_letsencrypt_staging_enabled() {
     local v
-    v=$(lxc config get "${CLUSTER_NAME}-master" user.letsencrypt_staging.install_cert)
+    v=$(lxc config get "$LXD_REMOTE${CLUSTER_NAME}-master" user.letsencrypt_staging.install_cert)
     [ "$v" == "1" ] || return 1
     return 0
 }
@@ -29,7 +29,7 @@ _addon_letsencrypt_staging_enabled() {
 addon_letsencrypt_staging_install() {
     ensureClusterNameIsSet
 
-    lxc config set "${CLUSTER_NAME}-master" user.letsencrypt_staging.install_cert 1
+    lxc config set "$LXD_REMOTE${CLUSTER_NAME}-master" user.letsencrypt_staging.install_cert 1
 
     for c in $(lxcListByPrefixAll "$CLUSTER_NAME") ; do
         _addon_letsencrypt_staging_setup_container "$c"

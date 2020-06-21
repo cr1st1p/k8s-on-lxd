@@ -37,7 +37,7 @@ addon_nfs_client_provisioner_parse_arg() {
 ensure_addon_nfs_client_provisioner_dir_is_set() {
     if [ -z "$addon_nfs_client_provisioner_dir" ]; then
         # check if it is set in the master's config
-        addon_nfs_client_provisioner_dir=$(lxc config get "${CLUSTER_NAME}-master" user.nfs_client_provisioner.dir)
+        addon_nfs_client_provisioner_dir=$(lxc config get "$LXD_REMOTE${CLUSTER_NAME}-master" user.nfs_client_provisioner.dir)
         if [ -z "$addon_nfs_client_provisioner_dir" ]; then
             bail "Please let me know where the storage on the host should be, via: --dir PATH"
         fi
@@ -64,7 +64,7 @@ addon_nfs_client_provisioner_add() {
 
     local master="${CLUSTER_NAME}-master"
 
-    lxc config set "$master" user.nfs_client_provisioner.dir "$addon_nfs_client_provisioner_dir"
+    lxc config set "$LXD_REMOTE$master" user.nfs_client_provisioner.dir "$addon_nfs_client_provisioner_dir"
     
     _addon_nfs_client_provisioner_prepare_master_container "$master" "$addon_nfs_client_provisioner_dir"
 
@@ -100,7 +100,7 @@ _addon_nfs_client_provisioner_prepare_master_container() {
     # let's find a suitable unused IP. Assuming we set LXD's dhcp to leave some available
     local url="/1.0/networks/$intf"
     local cidr
-    cidr=$(lxc query "$url" | jq -r '.config["ipv4.address"]')
+    cidr=$(lxc query "$LXD_REMOTE$url" | jq -r '.config["ipv4.address"]')
 
     # DO NOT forget to backquote $
     lxcExecBashCommands "$container" <<EOS
@@ -123,14 +123,14 @@ EOS
 
 
     local existing_dir
-    existing_dir=$(lxc query "/1.0/containers/$container" | jq -r '.devices["nfs-host-storage"].source' || true)
+    existing_dir=$(lxc query "$LXD_REMOTE/1.0/containers/$container" | jq -r '.devices["nfs-host-storage"].source' || true)
     [ "$existing_dir" = "null" ] && existing_dir=""
     
     if [ "$existing_dir" != "$data_dir" ]; then
         if [ -n "$existing_dir" ]; then
-            lxc config device remove "$container" nfs-host-storage
+            lxc config device remove "$LXD_REMOTE$container" nfs-host-storage
         fi
-        lxc config device add "$container" nfs-host-storage disk source="$data_dir" path=/mnt/nfs-export
+        lxc config device add "$LXD_REMOTE$container" nfs-host-storage disk source="$data_dir" path=/mnt/nfs-export
     fi
 
 	#lxcExec $container cat /etc/fstab		    
@@ -189,15 +189,15 @@ fi
 EOS
 
     local host_dir
-    host_dir=$(lxc config get "$master" user.nfs_client_provisioner.dir 2>/dev/null || true)
+    host_dir=$(lxc config get "$LXD_REMOTE$master" user.nfs_client_provisioner.dir 2>/dev/null || true)
     if [ -n "$host_dir" ]; then
-        lxc config unset "$master" user.nfs_client_provisioner.dir || true
+        lxc config unset "$LXD_REMOTE$master" user.nfs_client_provisioner.dir || true
     fi
 
     local disk
-    disk=$(lxc query "/1.0/containers/$master" | jq -r '.devices["nfs-host-storage"].type' || true)
+    disk=$(lxc query "$LXD_REMOTE/1.0/containers/$master" | jq -r '.devices["nfs-host-storage"].type' || true)
     if [ "$disk" = "disk" ]; then
-        lxc config device remove "$master" nfs-host-storage || true
+        lxc config device remove "$LXD_REMOTE$master" nfs-host-storage || true
     fi
     
 }

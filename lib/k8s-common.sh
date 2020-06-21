@@ -42,7 +42,7 @@ removeServiceProxy() {
     local ns="$1"
     local serviceName="$2"
 
-    lxc config device remove "${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" 2>/dev/null || true
+    lxc config device remove "$LXD_REMOTE${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" 2>/dev/null || true
 }
 
 
@@ -56,19 +56,19 @@ addServiceProxy() {
     local localPort
 
     local crtConnect
-    crtConnect=$(lxc query "/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.connect")
+    crtConnect=$(lxc query "$LXD_REMOTE/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.connect")
     if [ -z "$crtConnect" ]; then
         localPort=$(getRandomLocalPort)
-        lxc config device add "${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" proxy listen="tcp:0.0.0.0:$localPort" connect="tcp:$ip:$port" bind=host
+        lxc config device add "$LXD_REMOTE${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" proxy listen="tcp:0.0.0.0:$localPort" connect="tcp:$ip:$port" bind=host
         info "Adding LXD proxy device. "
     elif [ "$crtConnect" = "tcp:$ip:$port" ]; then
-        localPort=$(lxc query "/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.listen | ltrimstr(\"tcp:0.0.0.0:\") ")
+        localPort=$(lxc query "$LXD_REMOTE/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.listen | ltrimstr(\"tcp:0.0.0.0:\") ")
 
         info "LXD proxy device already present."
     else 
         info "LXD proxy device already present, changing service IP"
-        localPort=$(lxc query "/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.listen | ltrimstr(\"tcp:0.0.0.0:\") ")
-        lxc config device set "${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" connect="tcp:$ip:$port"
+        localPort=$(lxc query "$LXD_REMOTE/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.listen | ltrimstr(\"tcp:0.0.0.0:\") ")
+        lxc config device set "$LXD_REMOTE${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" connect="tcp:$ip:$port"
     fi
 
     local proto="https?"
@@ -81,6 +81,16 @@ addServiceProxy() {
 }
 
 
+warn_about_swap_description() {
+    cat << 'EOS'
+    You should disable it by running: sudo swapoff -a
+    For more information, check https://github.com/kubernetes/kubernetes/issues/53533
+    or try searching the net for: 'kubernetes swap'"
+    This Kubernetes setup will not run the checks for the swap, but you run this at your own risk.
+EOS
+        sleep 3s
+}
+
 _warned_about_swap=0
 warn_about_swap() {
     [ "$_warned_about_swap" = "0" ] || return 0
@@ -88,19 +98,19 @@ warn_about_swap() {
 
     local enabled=0
 
+    if ! lxdRemoteIsLocal; then
+        warn "Can not check for SWAP being enabled or not on your remote $LXD_REMOTE"
+        warn_about_swap_description
+        return 0
+    fi
+
     if [ -f /proc/swaps ]; then
         enabled=$(tail -n +2 /proc/swaps | wc -l)
     fi
 
     if [ "$enabled" != "0" ]; then
         warn "It looks like SWAP is enabled on your system. Kubernetes might be unstable."
-        cat << 'EOS'
-    You should disable it by running: sudo swapoff -a
-    For more information, check https://github.com/kubernetes/kubernetes/issues/53533
-    or try searching the net for: 'kubernetes swap'"
-    This Kubernetes setup will not run the checks for the swap, but you run this at your own risk.
-EOS
-        sleep 3s
+        warn_about_swap_description
     fi
 }
 
@@ -140,7 +150,7 @@ launchK8SContainer() {
     fi
 
     # Not sure who the f. sends something on stdin, inside vagrant. https://github.com/lxc/lxd/issues/6228
-    lxc init -p "$LXD_PROFILE_NAME" "$image_name" "$container"  < /dev/null
+    lxc init -p "$LXD_PROFILE_NAME" "$LXD_REMOTE$image_name" "$LXD_REMOTE$container"  < /dev/null
 
     # one time setup before container actually starts:
     if [ "$container" = "$masterContainer" ]; then
@@ -153,13 +163,13 @@ launchK8SContainer() {
     # lifetime
     runFunctions '^before_node_starts__' "$masterContainer" "$container"
 
-    lxc start "$container"
+    lxc start "$LXD_REMOTE$container"
     lxdWaitIp "$container"
 
     info "Container has an IP address. Waiting for Docker to start"
     # and wait for Docker service to be ready since you'll want to use it soon after start
     for _ in $(seq 1 10); do
-        if lxcExec "$container" service docker status | grep -F -q 'Active: active (running)' ; then
+        if lxcExec "$LXD_REMOTE$container" service docker status | grep -F -q 'Active: active (running)' ; then
             break
         fi
         sleep 1s
@@ -169,6 +179,7 @@ launchK8SContainer() {
 
 
 checkResources() {
+    lxdRemoteIsLocal || return 0
     declare -i usedDisk
     usedDisk=$(df -l --output=pcent  / | tail -n 1 | sed -e 's/[ %]//g')
     if [ "$usedDisk" -ge 80 ]; then

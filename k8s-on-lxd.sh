@@ -74,6 +74,10 @@ done
 
 
 prepareLxd() {
+    if ! lxdRemoteIsLocal ; then
+        bail "You need to run the preparation on the actual host with LXD"
+    fi
+
     runFunctions '^setup_host__'
 
     runFunctions '^setup_lxd__'
@@ -95,8 +99,10 @@ stopAll() {
     	info "No containers to stop"
     else
     	info "Will stop containers" "${list[@]}"
-    	lxc stop "${list[@]}"
-    fi 
+        for n in "${list[@]}"; do
+    	    lxc stop "$LXD_REMOTE$n"
+        done
+    fi
 }
 
 
@@ -112,7 +118,7 @@ runAll() {
         for container in "${list[@]}"; do
             runFunctions '^before_node_starts__' "$masterContainer" "$container"
 
-    	    lxc start "$container"
+    	    lxc start "$LXD_REMOTE$container"
         done
     fi 
 }
@@ -130,7 +136,9 @@ deleteAll() {
     		info "No containers to delete"
     	else
 	    	info "Will delete containers" "${list[@]}"
-	    	lxc delete "${list[@]}"
+            for n in "${list[@]}" ; do
+	    	    lxc delete "$LXD_REMOTE$n"
+            done
 	fi
     fi
 }
@@ -152,6 +160,7 @@ Usage: $SCRIPT_NAME options...
 
     -n,--name= NAME : sets the name prefix to use for nodes. Nodes will be named
          NAME-master, NAME-worker-1, NAME-worker-2, etc
+    --remote remoteName. Default 'local'
     --k8s-version VERSION : which kubernetes version to use. Default is $K8S_VERSION_DEFAULT
         Usable during setup phase, and when launching a master node.
     --no-colour,--no-color : disable use of colors/bold text/emoticons
@@ -252,6 +261,12 @@ processMainArguments() {
             processedArgumentsCount=2
             return 0
             ;;
+        --remote)
+            checkArg "$1" "$2"
+            export LXD_REMOTE="${2//:/}:"
+            processedArgumentsCount=2
+            return 0
+            ;;
         -m|--master)
             beforeCommand
             launchMaster "$CLUSTER_NAME"
@@ -292,7 +307,7 @@ processMainArguments() {
         -t|--test)
             # for whatever adhoc test I need
             #kubeletChangeAuthMode site2-worker-1
-            prepareLocalFakeMounts site2-worker-1
+            lxdMessageAboutRouting
             exit 0
             ;;
         --no-check-lost-found)

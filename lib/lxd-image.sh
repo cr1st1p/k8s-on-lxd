@@ -53,12 +53,12 @@ prepareLxdImageStartContainer() {
         status=$(lxdStatus "$container")
         if [ "$status" = "Stopped" ]; then
             info "Starting stopped container $container"
-            lxc start "$container"
+            lxc start "$LXD_REMOTE$container"
         fi
     else
         # we should also be using a privileged container even when building it
         # Not sure who the f. sends something on stdin, inside vagrant. https://github.com/lxc/lxd/issues/6228
-        lxc launch -p "$LXD_PROFILE_NAME" "$sourceImage" "$container" < /dev/null
+        lxc launch -p "$LXD_PROFILE_NAME" "$LXD_REMOTE$sourceImage" "$LXD_REMOTE$container" < /dev/null
     fi
     
     lxdWaitIp "$container"
@@ -78,11 +78,13 @@ run_script_inside_container() {
 
     info "Copying script files to container"
 
-    lxc file push "$SCRIPT_PATH/k8s-on-lxd.sh" "${container}$d/"
-    lxc file push -r "$SCRIPT_PATH/lib" "${container}$d/"
-    lxc file push -r "$SCRIPT_PATH/addons" "${container}$d/"
+    lxc file push "$SCRIPT_PATH/k8s-on-lxd.sh" "$LXD_REMOTE${container}$d/"
+    lxc file push -r "$SCRIPT_PATH/lib" "$LXD_REMOTE${container}$d/"
+    lxc file push -r "$SCRIPT_PATH/addons" "$LXD_REMOTE${container}$d/"
 
-    lxcExecBash "$container" "$d/k8s-on-lxd.sh  --k8s-version '$K8S_VERSION' $*"
+    local params="$d/k8s-on-lxd.sh  --k8s-version '$K8S_VERSION'"
+    [ -n "$DEBUG" ] && params="$params --debug"
+    lxcExecBash "$container" "$params $*"
 
     # and remove them
     lxcExec "$container" rm -rf "$d"
@@ -101,10 +103,10 @@ prepareLxdImage__01_start_container() {
     ubuntu_image_local="ubuntu-$ubuntu_version"
     
     info "Checking for local ubuntu image $ubuntu_image_local"
-    if ! (lxc image info $ubuntu_image_local 2>/dev/null | grep -F -q "Architecture:") ; then
+    if ! (lxc image info "$LXD_REMOTE$ubuntu_image_local" 2>/dev/null | grep -F -q "Architecture:") ; then
         info "  copying Ubuntu image $ubuntu_version locally"
         # NOTE: if it fails to add the aliases, then https://github.com/lxc/lxd/issues/6419
-        lxc image copy ubuntu:$ubuntu_version --copy-aliases --auto-update --alias $ubuntu_image_local local: 
+        lxc image copy ubuntu:$ubuntu_version --copy-aliases --auto-update --alias $ubuntu_image_local "$LXD_REMOTE" 
     fi
     
 
@@ -120,7 +122,7 @@ lxdPushShellFiles() {
 
     lxcExecDirect "$container" mkdir -p /usr/local/lib/shell
     for f in apt.sh general.sh; do
-        lxc file push "$SCRIPT_PATH/lib/$f" "$container/usr/local/lib/shell/"
+        lxc file push "$SCRIPT_PATH/lib/$f" "$LXD_REMOTE$container/usr/local/lib/shell/"
     done
 }
 
@@ -132,7 +134,7 @@ prepareLxdImage__02_kernel_config_file_or_module() {
     
     if [ -f "$f" ]; then
     	info "Copying kernel config file $f"
-    	lxc file push "$f" "$container/$f"
+    	lxc file push "$f" "$LXD_REMOTE$container/$f"
     	modprobe configs || true 
     else
     	modprobe configs
@@ -201,8 +203,7 @@ insideLxdImage__07_add_docker_repo() {
 insideLxdImage__08_docker_check_variant() {
     
     # verifying that candidate will be from the docker repo
-    candidate=$(apt-cache policy docker-ce | grep -F "Candidate")
-    candidate=${candidate/Candidate: /}
+    candidate=$(apt-cache policy docker-ce | grep -F "Candidate" | sed -E -e 's@\s*Candidate\s*:\s*@@')
     if ! apt-cache policy docker-ce | grep -F -A 1 "$candidate" | grep -F download.docker.com/ | grep -F -q download.docker.com/ ; then
         err "Strange, it looks like the docker candidate to install ($candidate) does not come from docker's repo. Please check in: "
         apt-cache policy docker-ce
@@ -484,10 +485,10 @@ publishContainerAsImage() {
     local container=$1
 
     info "Publishing locally the k8s container '$container' as image '$container'"
-    lxc stop "$container"
-    lxc publish "$container" --alias "$container" --compression none
+    lxc stop "$LXD_REMOTE$container"
+    lxc publish "$LXD_REMOTE$container" "$LXD_REMOTE" --alias "$container" --compression none
     
-    lxc delete "$container"
+    lxc delete "$LXD_REMOTE$container"
 }
 
 
@@ -566,8 +567,8 @@ prepareLxdImages() {
     # delete the common image now
     local base_image
     base_image=$(makeValidHostname "${IMAGE_NAME_BASE}-${K8S_VERSION}")
-    if lxc image show "$base_image" 2>/dev/null | grep -F -q 'public:' ; then 
-        lxc image delete  "$base_image"
+    if lxc image show "$LXD_REMOTE$base_image" 2>/dev/null | grep -F -q 'public:' ; then 
+        lxc image delete  "$LXD_REMOTE$base_image"
     fi
 }
 

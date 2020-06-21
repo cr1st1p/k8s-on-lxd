@@ -19,9 +19,9 @@ launch_worker__00_start_it() {
     # we'll deduce the image name from the master, regardless of any --k8s-version parameter    
     local imageName
     local masterImage
-    masterImage=$(lxc query "/1.0/containers/$masterContainer" | jq -r '.config["volatile.base_image"]')
+    masterImage=$(lxc query "$LXD_REMOTE/1.0/containers/$masterContainer" | jq -r '.config["volatile.base_image"]')
     local masterImageName
-    masterImageName=$(lxc query "/1.0/images/$masterImage" | jq -r '.aliases[].name' | grep -E '\-master$')
+    masterImageName=$(lxc query "$LXD_REMOTE/1.0/images/$masterImage" | jq -r '.aliases[].name' | grep -E '\-master$')
     test -n "$masterImageName"
 
     imageName=${masterImageName/-master/-worker}
@@ -36,7 +36,7 @@ launch_worker__04_create_kubeadm_config() {
 
     info "  creating kubeadm config file"
 
-    token=$(lxc config get "$masterContainer" user.kubeadm.token)
+    token=$(lxc config get "$LXD_REMOTE$masterContainer" user.kubeadm.token)
     if [ -z "$token" ]; then
         bail "Can't find token in master container's config"
     fi
@@ -78,7 +78,7 @@ failSwapOn: false
 
 EOS
        
-    lxc file push "$cfg" "$container/$TMP_KUBEADM_CONFIG"
+    lxc file push "$cfg" "$LXD_REMOTE$container/$TMP_KUBEADM_CONFIG"
     rm "$cfg"
 }
 
@@ -154,10 +154,10 @@ launchWorker() {
     # later you add a container with the same name
  
     local lastWorkerId
-    lastWorkerId=$(lxc config get "$masterContainer" user.worker.lastId)
+    lastWorkerId=$(lxc config get "$LXD_REMOTE$masterContainer" user.worker.lastId)
 
     (( lastWorkerId = "$lastWorkerId" + 1 ))
-    lxc config set "$masterContainer" user.worker.lastId "$lastWorkerId"
+    lxc config set "$LXD_REMOTE$masterContainer" user.worker.lastId "$lastWorkerId"
     
     local container="$prefix-worker-${lastWorkerId}"
     

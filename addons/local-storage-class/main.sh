@@ -46,7 +46,7 @@ addon_local_storage_class_parse_arg() {
 ensure_addon_local_storage_class_dir_is_set() {
     if [ -z "$addon_local_storage_class_dir" ]; then
         # check if it is set in the master's config
-        addon_local_storage_class_dir=$(lxc config get "${CLUSTER_NAME}-master" user.local_storage_class.dir)
+        addon_local_storage_class_dir=$(lxc config get "$LXD_REMOTE${CLUSTER_NAME}-master" user.local_storage_class.dir)
         if [ -z "$addon_local_storage_class_dir" ]; then
             bail "Please let me know where the storage on the host should be, via: --dir PATH"
         fi
@@ -76,7 +76,7 @@ addon_local_storage_class_add() {
 
     test -d "$addon_local_storage_class_dir" || mkdir -p "$addon_local_storage_class_dir"
 
-    lxc config set "${CLUSTER_NAME}-master" user.local_storage_class.dir "$addon_local_storage_class_dir"
+    lxc config set "$LXD_REMOTE${CLUSTER_NAME}-master" user.local_storage_class.dir "$addon_local_storage_class_dir"
 
     addon_local_storage_class_prepare_dirs
 
@@ -106,16 +106,16 @@ _addon_local_storage_class_prepare_container() {
     done
 
     local existing_dir
-    existing_dir=$(lxc query "/1.0/containers/$container" | jq -r '.devices["host-storage"].source' || true)
+    existing_dir=$(lxc query "$LXD_REMOTE/1.0/containers/$container" | jq -r '.devices["host-storage"].source' || true)
     [ "$existing_dir" = "null" ] && existing_dir=""
     
     local data_dir="$addon_local_storage_class_dir/$container/"
 
     if [ "$existing_dir" != "$data_dir" ]; then
         if [ -n "$existing_dir" ]; then
-            lxc config device remove "$container" host-storage
+            lxc config device remove "$LXD_REMOTE$container" host-storage
         fi
-        lxc config device add "$container" host-storage disk source="$data_dir" path=/mnt/host-storage
+        lxc config device add "$LXD_REMOTE$container" host-storage disk source="$data_dir" path=/mnt/host-storage
     fi
 
     # DO NOT forget to backquote $
@@ -144,7 +144,7 @@ launch_worker__02_local_storage_class_setup() {
     addon_local_storage_class_enabled || return 0
     
     local addon_local_storage_class_dir
-    addon_local_storage_class_dir=$(lxc config get "${prefix}-master" user.local_storage_class.dir)
+    addon_local_storage_class_dir=$(lxc config get "$LXD_REMOTE${prefix}-master" user.local_storage_class.dir)
 
     _addon_local_storage_class_prepare_container "$container" "$addon_local_storage_class_dir"
 }
