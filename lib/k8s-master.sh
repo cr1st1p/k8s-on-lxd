@@ -103,6 +103,18 @@ launch_master__02_generate_kubeadm_token() {
 }
 
 
+# to be able to access this master from an external machine we're going to add a LXD proxy
+launch_master__04_set_api_proxy() {
+    local prefix=$1
+    local container=$2
+
+    local localPort
+    localPort=$(getUnusedLxdProxyPort)
+    info "Adding LXD proxy device for accessing API endpoint from a remote node, to port $localPort"
+    lxc config device add "$LXD_REMOTE${container}" "proxy-api" proxy listen="tcp:0.0.0.0:$localPort" connect="tcp:127.0.0.1:6443" bind=host
+}
+
+
 launch_master__04_create_kubeadm_config() {
     local prefix=$1
     local container=$2
@@ -128,6 +140,18 @@ launch_master__04_create_kubeadm_config() {
         KUBELET_API_VERSION=kubelet.config.k8s.io/v1beta1
     fi
     
+    local otherSANS=""
+    if ! lxdRemoteIsLocal; then
+        local remoteHost
+        remoteHost=$(hostnameFromUrl "$(lxdRemoteUrl "$LXD_REMOTE")")
+        otherSANS="  - $remoteHost"
+    else
+        read -r -d '' otherSANS <<EOS
+  - $(hostname)
+  - $(hostname -f)
+EOS
+    fi
+
     cat >"$cfg" << EOS
 apiVersion: $KUBEADM_API_VERSION
 kind: InitConfiguration
@@ -150,6 +174,7 @@ apiServer:
   timeoutForControlPlane: 4m0s
   certSANs:
   - ${prefix}-master.lxd
+$otherSANS  
 kubernetesVersion: v${K8S_VERSION}
 certificatesDir: /etc/kubernetes/pki
 networking:

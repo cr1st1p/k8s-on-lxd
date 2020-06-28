@@ -20,7 +20,7 @@ Short list of characteristics as per the [storage](../../docs/storage.md) docume
 
   
 
-Each Kubernetes node will have some fictive disks mounted, which will be presented to Kubernetes application under a specific storage class name. Each of those fictive disks will be actual directories on your host machine - using LXD features.
+Each Kubernetes node will have some fictive disks mounted, which will be presented to Kubernetes application under a specific storage class name. Each of those fictive disks will be actual directories on your host machine - using LXD features - except if LXD node is remote.
 
-For example, you could set it so that under your **host**'s directory ```my_project/data/``` it will create a subdirectory for each kubernetes node, and inside those, a number of subdirectories (20 by default). Each such unused subdirectory will be selected by the provisioner whenever your deployment will ask for a storage with class 'local-disks'.
+If LXD node is local, for example, you could set it so that under your **host**'s directory ```my_project/data/``` it will create a subdirectory for each kubernetes node, and inside those, a number of subdirectories (20 by default). Each such unused subdirectory will be selected by the provisioner whenever your deployment will ask for a storage with class 'local-disks'.
 

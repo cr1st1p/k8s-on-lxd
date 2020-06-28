@@ -84,7 +84,14 @@ addon_dashboard_url() {
             url=https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta4/aio/deploy/recommended.yaml
             ;;
         "1.16")
-            url=https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta5/aio/deploy/recommended.yaml            
+            url=https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc3/aio/deploy/recommended.yaml            
+            ;;
+        "1.17")
+            # NOT TESTED
+            url=https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc7/aio/deploy/recommended.yaml            
+            ;;
+        "1.18")
+            url=https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.3/aio/deploy/recommended.yaml            
             ;;
         *)
             bail "Unsupported kubernetes version $kVersion"

@@ -35,12 +35,24 @@ addUserKubectlConfig() {
     getKubeadmConfigEntry "$container" "certificate-authority-data" "$where"
     getKubeadmConfigEntry "$container" "client-certificate-data" "$where"
     getKubeadmConfigEntry "$container" "client-key-data" "$where"
-
-    masterIP=$(lxdGetIp "$container")
+    
+    if lxdRemoteIsLocal; then
+        apiIP=$(lxdGetIp "$container")
+        apiPort=6443
+    else
+        local remoteHost
+        remoteHost=$(hostnameFromUrl "$(lxdRemoteUrl "$LXD_REMOTE")")
+        if [ -z "$remoteHost" ]; then
+            warn "Could not determine $LXD_REMOTE remote's hosstname!?"
+            return 0
+        fi
+        apiIP="$remoteHost"
+        apiPort=$(lxc query "$LXD_REMOTE/1.0/containers/${container}" | jq -r '.devices | to_entries | .[] | select( .key == "proxy-api") | .value.listen' | grep '^tcp:0.0.0.0:' | sed -E -e 's@tcp:0.0.0.0:@@')
+    fi
 
 
     kubectl config set-cluster --context "$ctxName" "$ctxName" \
-        --server  "https://$masterIP:6443" \
+        --server  "https://$apiIP:$apiPort" \
         --certificate-authority "${where}-certificate-authority-data"
     kubectl config set-credentials --context "$ctxName" "$ctxName" \
         --client-certificate "${where}-client-certificate-data" \

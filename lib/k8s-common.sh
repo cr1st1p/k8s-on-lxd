@@ -46,6 +46,27 @@ removeServiceProxy() {
 }
 
 
+getUnusedLxdProxyPort() {
+    # first, let's extract what other ports are used (tcp proxies)
+    local f
+    f=$(mktemp)
+    for url in $(lxc query "$LXD_REMOTE/1.0/containers" | jq -r '.[]'); do
+        lxc query "$LXD_REMOTE$url" | jq -r '.devices | to_entries | .[] | select (.value.type == "proxy") | .value.listen' | grep '^tcp:0.0.0.0:' | sed -E -e 's@tcp:0.0.0.0:@@' >> "$f"
+    done
+
+    for i in $(seq 1 200); do
+        localPort=$(getRandomLocalPort)
+        if ! grep -E "^$localPort$" "$f"; then
+            echo "$localPort"
+            rm "$f"
+            return 0
+        fi
+    done
+    rm "$f"
+    bail "Could not find a free port "
+}
+
+
 addServiceProxy() {
     local ns="$1"
     local serviceName="$2"
@@ -58,7 +79,7 @@ addServiceProxy() {
     local crtConnect
     crtConnect=$(lxc query "$LXD_REMOTE/1.0/containers/${CLUSTER_NAME}-master" | jq -r ".devices | to_entries | .[] | select( .key == \"proxy-svc-$ns-$serviceName\") | .value.connect")
     if [ -z "$crtConnect" ]; then
-        localPort=$(getRandomLocalPort)
+        localPort=$(getUnusedLxdProxyPort)
         lxc config device add "$LXD_REMOTE${CLUSTER_NAME}-master" "proxy-svc-$ns-$serviceName" proxy listen="tcp:0.0.0.0:$localPort" connect="tcp:$ip:$port" bind=host
         info "Adding LXD proxy device. "
     elif [ "$crtConnect" = "tcp:$ip:$port" ]; then
@@ -77,7 +98,17 @@ addServiceProxy() {
     local crtIP
     crtIP=$(getIpOfNetDevice "$(getNetDevice)")
 
-    info "Use $proto://localhost:$localPort or even $proto://$crtIP:$localPort (from other machines)  to access your ${serviceName}:${port} service"
+    if lxdRemoteIsLocal; then
+        info "Use $proto://localhost:$localPort or even $proto://$crtIP:$localPort (from other machines)  to access your ${serviceName}:${port} service"
+    else
+        local remoteHost
+        remoteHost=$(hostnameFromUrl "$(lxdRemoteUrl "$LXD_REMOTE")")
+        if [ -z "$remoteHost" ]; then
+            bail "Could not determine $LXD_REMOTE remote's hosstname!?"
+        fi
+
+        info "Use $proto://$remoteHost:$localPort to access your ${serviceName}:${port} service"
+    fi
 }
 
 
@@ -169,7 +200,7 @@ launchK8SContainer() {
     info "Container has an IP address. Waiting for Docker to start"
     # and wait for Docker service to be ready since you'll want to use it soon after start
     for _ in $(seq 1 10); do
-        if lxcExec "$LXD_REMOTE$container" service docker status | grep -F -q 'Active: active (running)' ; then
+        if lxcExec "$container" service docker status | grep -F -q 'Active: active (running)' ; then
             break
         fi
         sleep 1s

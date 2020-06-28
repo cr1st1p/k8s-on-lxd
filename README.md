@@ -266,15 +266,14 @@ k8s-on-lxd.sh --name NAME --delete
 
 ---
 # Remote LXD servers
-There is a some code to use remote LXD servers.
+There is support for using a remote LXD server.
 Steps:
 - you need to run the '--setup' phase directly on that LXD server.
 - add your remote: ```lxd remote add SomeName theRemoteAddressAndPort```
 - then you can use the same commands but add ```--remote NameOfTheRemote```. Example:
   ```k8s-on-lxd.sh --remote dorel --name home-dev1 --master```
-- LXD container IPs are local to the machine, so to access your cluster via kubectl you might need to add some routing
-  A message with warning should appear sometimes trying to give a few hints on how to do that. Basically an
-  ```sudo ip route add CIDR via NodeIP dev DEVICE ```
+- LXD container IPs are local to the machine - including the master API entry point.
+  In order to have access to it, remotely, with kubectl, a LXD proxy device will be set on a random port.
 - some checks during might be disabled (check for swap, or for enough disk space)
 
 ---

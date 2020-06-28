@@ -26,13 +26,14 @@ warn() {
 
 err() {
     if terminalSupportsColors; then
+        (
         tput smso; tput setaf 1
         echo -n "${EMOTICON_FATAL}ERR:"
         tput sgr0
-        echo " " "$@"        
-        
+        echo " " "$@"
+        ) 1>&2
     else
-        echo "ERR : " "$@"
+        echo "ERR : " "$@" 1>&2
     fi
 }
 
