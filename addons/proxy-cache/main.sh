@@ -51,7 +51,7 @@ EOS
         fi
     done
     info "    pushing file $f_destination"
-    lxc file push "$f_local" "$container/$f_destination"
+    lxc file push "$f_local" "$LXD_REMOTE$container/$f_destination"
 }
 
 

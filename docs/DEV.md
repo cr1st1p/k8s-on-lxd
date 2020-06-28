@@ -158,7 +158,7 @@ Internally, for a command COMMAND, for addon ADDON, the function
 An addon can store some settings in the master container configuration.
 Example:
 ```
-v=$(lxc config get "${CLUSTER_NAME}-master" user.letsencrypt_staging.install_cert)
+v=$(lxc config get "$LXD_REMOTE${CLUSTER_NAME}-master" user.letsencrypt_staging.install_cert)
 ```
 
 Or it can check what is present already inside the cluster:

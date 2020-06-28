@@ -134,9 +134,9 @@ EOS
 
 lxd_check_init_was_run() {
     local has_net_device
-    has_net_device=$(lxc query /1.0/networks/lxdbr0 2>/dev/null | jq -r '.managed')
+    has_net_device=$(lxc query "$LXD_REMOTE/1.0/networks/lxdbr0" 2>/dev/null | jq -r '.managed')
     local count
-    count=$(lxc query /1.0/storage-pools | jq '. | length')
+    count=$(lxc query "$LXD_REMOTE/1.0/storage-pools" | jq '. | length')
     
     if [ "$has_net_device" != "true" ] || [ "$count" = "0" ]; then
         err "I can not find lxdbr0 device or there are no LXD storage pools defined."

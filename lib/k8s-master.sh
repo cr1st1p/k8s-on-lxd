@@ -46,14 +46,14 @@ init_before_master_starts__10_set_eth_fixed_ip() {
     # let's find a suitable unused IP. Assuming we set LXD's dhcp to leave some available
     local url="/1.0/networks/$intf"
     local cidr
-    cidr=$(lxc query "$url" | jq -r '.config["ipv4.address"]')
+    cidr=$(lxc query "$LXD_REMOTE$url" | jq -r '.config["ipv4.address"]')
     local base
     base=$(echo "$cidr" | cut -d '.' -f 1-3)
     declare -i min
     min=$((1 + $(echo "$cidr" | cut -d '.' -f 4 | cut -d '/' -f 1)))
 
     local dhcp_ranges
-    dhcp_ranges=$(lxc query "$url" 2>/dev/null | jq -r '.config["ipv4.dhcp.ranges"]')
+    dhcp_ranges=$(lxc query "$LXD_REMOTE$url" 2>/dev/null | jq -r '.config["ipv4.dhcp.ranges"]')
     if [[ "$dhcp_ranges" != *"-"* ]]; then
         bail "Invalid DHCP range $dhcp_ranges"
     fi
@@ -67,9 +67,9 @@ init_before_master_starts__10_set_eth_fixed_ip() {
     local ftmp
     ftmp=$(mktemp)
 
-    for url in $(lxc query /1.0/containers | jq -r '.[]'); do
+    for url in $(lxc query "$LXD_REMOTE/1.0/containers" | jq -r '.[]'); do
         local name
-        name=$(lxc query "$url" | jq -r '.name')
+        name=$(lxc query "$LXD_REMOTE$url" | jq -r '.name')
 
         local c_ip
         c_ip=$(lxdGetConfiguredIp "$name")
@@ -98,8 +98,20 @@ launch_master__02_generate_kubeadm_token() {
     local container=$2
 
     token=$(generateKubeadmToken)
-    lxc config set "$container" user.kubeadm.token "$token"
+    lxc config set "$LXD_REMOTE$container" user.kubeadm.token "$token"
 
+}
+
+
+# to be able to access this master from an external machine we're going to add a LXD proxy
+launch_master__04_set_api_proxy() {
+    local prefix=$1
+    local container=$2
+
+    local localPort
+    localPort=$(getUnusedLxdProxyPort)
+    info "Adding LXD proxy device for accessing API endpoint from a remote node, to port $localPort"
+    lxc config device add "$LXD_REMOTE${container}" "proxy-api" proxy listen="tcp:0.0.0.0:$localPort" connect="tcp:127.0.0.1:6443" bind=host
 }
 
 
@@ -128,6 +140,18 @@ launch_master__04_create_kubeadm_config() {
         KUBELET_API_VERSION=kubelet.config.k8s.io/v1beta1
     fi
     
+    local otherSANS=""
+    if ! lxdRemoteIsLocal; then
+        local remoteHost
+        remoteHost=$(hostnameFromUrl "$(lxdRemoteUrl "$LXD_REMOTE")")
+        otherSANS="  - $remoteHost"
+    else
+        read -r -d '' otherSANS <<EOS
+  - $(hostname)
+  - $(hostname -f)
+EOS
+    fi
+
     cat >"$cfg" << EOS
 apiVersion: $KUBEADM_API_VERSION
 kind: InitConfiguration
@@ -150,6 +174,7 @@ apiServer:
   timeoutForControlPlane: 4m0s
   certSANs:
   - ${prefix}-master.lxd
+$otherSANS  
 kubernetesVersion: v${K8S_VERSION}
 certificatesDir: /etc/kubernetes/pki
 networking:
@@ -168,7 +193,7 @@ failSwapOn: false
 ---
 EOS
        
-    lxc file push "$cfg" "$container/$TMP_KUBEADM_CONFIG"
+    lxc file push "$cfg" "$LXD_REMOTE$container/$TMP_KUBEADM_CONFIG"
     rm "$cfg"
 }
 

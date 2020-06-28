@@ -10,8 +10,8 @@
 VERSION_FIELD="user.k8s.version"
 
 lxd_profile_create__00_create_it() {
-    lxc profile create "$LXD_PROFILE_NAME"    
-    lxc profile set "$LXD_PROFILE_NAME" "$VERSION_FIELD" "$VERSION"
+    lxc profile create "$LXD_REMOTE$LXD_PROFILE_NAME"    
+    lxc profile set "$LXD_REMOTE$LXD_PROFILE_NAME" "$VERSION_FIELD" "$VERSION"
 }
 
 # This will tell guest what kernel modules to use
@@ -21,7 +21,7 @@ lxd_profile_create__02_kernel_modules() {
 
     join "," "${modules[@]}"
     #shellcheck disable=SC2154
-    lxc profile set "$LXD_PROFILE_NAME" linux.kernel_modules "$join_ret"
+    lxc profile set "$LXD_REMOTE$LXD_PROFILE_NAME" linux.kernel_modules "$join_ret"
 
     # we need to have these modules loaded in host for this to work
     info "checking for modules to load on host ..."
@@ -58,11 +58,11 @@ lxc.seccomp.profile=
 EOS
 )
 
-    lxc profile set "$LXD_PROFILE_NAME" raw.lxc "$rawLXC"
-    lxc profile set "$LXD_PROFILE_NAME" security.privileged "true"
-    lxc profile set "$LXD_PROFILE_NAME" security.nesting "true"
+    lxc profile set "$LXD_REMOTE$LXD_PROFILE_NAME" raw.lxc "$rawLXC"
+    lxc profile set "$LXD_REMOTE$LXD_PROFILE_NAME" security.privileged "true"
+    lxc profile set "$LXD_REMOTE$LXD_PROFILE_NAME" security.nesting "true"
 
-    lxc profile device add "$LXD_PROFILE_NAME" aadisable1 disk path=/sys/module/apparmor/parameters/enabled source=/dev/null
+    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" aadisable1 disk path=/sys/module/apparmor/parameters/enabled source=/dev/null
 
 }
 
@@ -70,9 +70,9 @@ EOS
 lxd_profile_create__06_networking() {
     # and add the eth0 device as well (we can't use the 'default' profile in the same time')
 
-    lxc profile device add "$LXD_PROFILE_NAME" eth0 nic name=eth0 nictype=bridged parent=lxdbr0
+    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" eth0 nic name=eth0 nictype=bridged parent=lxdbr0
     
-    lxc profile device add "$LXD_PROFILE_NAME" aadisable disk path=/sys/module/nf_conntrack/parameters/hashsize source=/dev/null
+    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" aadisable disk path=/sys/module/nf_conntrack/parameters/hashsize source=/dev/null
 
 }
 
@@ -80,7 +80,7 @@ lxd_profile_create__05_storage() {
     # Ensure we're using a 'dir' based storage'
     local storage_pool
     storage_pool=$(lxdGetStoragePoolDirType)
-    lxc profile device add "$LXD_PROFILE_NAME" root disk path=/ pool="$storage_pool"
+    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" root disk path=/ pool="$storage_pool"
 }
 
 lxd_profile_create__07_host_root_disk() {
@@ -96,29 +96,33 @@ lxd_profile_create__07_host_root_disk() {
     mountDevice=$(echo "$mountInfo" | cut -f 1 -d ' ')
     nameMountDevice=${mountDevice//[\/]/_}
     test -b "$mountDevice" || bail "Mount point $mountDevice for storage directory $storage_path is not a block device?"
-    lxc profile device add "$LXD_PROFILE_NAME" "$nameMountDevice" unix-block path="$mountDevice" source="$mountDevice"
+    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" "$nameMountDevice" unix-block path="$mountDevice" source="$mountDevice"
 }
 
 
 lxd_profile_create__07_kernel_messages() {
     if [ -e /dev/kmsg ]; then
-	    lxc profile device add "$LXD_PROFILE_NAME" dev_kmsg unix-char path=/dev/kmsg source=/dev/kmsg
+	    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" dev_kmsg unix-char path=/dev/kmsg source=/dev/kmsg
     elif  [ -e /dev/console ]; then
-	    lxc profile device add "$LXD_PROFILE_NAME" dev_kmsg unix-char path=/dev/kmsg source=/dev/console
+	    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" dev_kmsg unix-char path=/dev/kmsg source=/dev/console
     fi
 }
 
 
 lxdGetProfileVersion() {
-    if lxc query "/1.0/profiles/$LXD_PROFILE_NAME" >/dev/null 2>/dev/null; then
-        lxc profile get "$LXD_PROFILE_NAME" "$VERSION_FIELD"
+    if lxc query "$LXD_REMOTE/1.0/profiles/$LXD_PROFILE_NAME" >/dev/null 2>/dev/null; then
+        lxc profile get "$LXD_REMOTE$LXD_PROFILE_NAME" "$VERSION_FIELD"
     fi
 }
 
 lxdCheckProfileVersion() {
     local v=
     v=$(lxdGetProfileVersion)
-    if [ -n "$v" ] && [ "$v" != "$VERSION" ]; then
+    if [ -z "$v" ]; then        
+        bail "No profile set. You need to run setup (--setup)"
+    fi
+
+    if [ "$v" != "$VERSION" ]; then
         warn "profile $LXD_PROFILE_NAME is of different version then what the script can create"
         warn "you might want to run the setup again (--setup)"
     fi
@@ -156,8 +160,8 @@ lxdCreateProfile() {
     info "profile '$LXD_PROFILE_NAME' created"
 
     if [ -n "$useTemporaryProfile" ]; then
-        lxc profile show "$LXD_PROFILE_NAME" | lxc profile edit "$origLxdProfileName"
-        lxc profile delete "$LXD_PROFILE_NAME"
+        lxc profile show "$LXD_REMOTE$LXD_PROFILE_NAME" | lxc profile edit "$LXD_REMOTE$origLxdProfileName"
+        lxc profile delete "$LXD_REMOTE$LXD_PROFILE_NAME"
         LXD_PROFILE_NAME="$origLxdProfileName"
     fi
 }

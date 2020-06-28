@@ -26,13 +26,14 @@ warn() {
 
 err() {
     if terminalSupportsColors; then
+        (
         tput smso; tput setaf 1
         echo -n "${EMOTICON_FATAL}ERR:"
         tput sgr0
-        echo " " "$@"        
-        
+        echo " " "$@"
+        ) 1>&2
     else
-        echo "ERR : " "$@"
+        echo "ERR : " "$@" 1>&2
     fi
 }
 
@@ -130,6 +131,11 @@ elementIn () {
   return 1
 }
 
+# not tested enough
+hostnameFromUrl() {
+    echo -n "$1" | grep -i -E '^https?://' | sed -E -e 's!^https?://([^:@]+(:[^@]+)?@)?([^:/]+).*!\3!i' 
+}
+
 kernelModuleLoaded() {
     local m="$1"
     lsmod | grep -qE "^$m\s+"
@@ -172,6 +178,9 @@ getIpOfNetDevice() {
     ip -o -4 addr list "$1" | gawk '{print $4}' | cut -d/ -f1 | head -1
 }
 
+getHostIp() {
+    getent ahostsv4 "$1" | grep STREAM | head -n 1 | cut -d ' ' -f 1
+}
 
 getRandomLocalPort() {
     local LOWERPORT UPPERPORT  PORT
