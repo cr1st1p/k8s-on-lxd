@@ -168,6 +168,7 @@ Usage: $SCRIPT_NAME options...
     -m, --master :  to create and start a master node, named NAME-master
     -w, --worker :  to create and start a new worker node, named NAME-worker-N, 
         where N is a number NOT used yet
+    --allow-master-scheduling - set master so that pods can be scheduled on it as well. It removes a node tain.
 
     -c,--set-config : to update your local kubectl config to access the LXD k8s 
         cluster. This is done also during creation of the master node.
@@ -270,6 +271,11 @@ processMainArguments() {
         -m|--master)
             beforeCommand
             launchMaster "$CLUSTER_NAME"
+            exit 0
+            ;;
+        --allow-master-scheduling)
+            beforeCommand
+            runKubectl taint node "${CLUSTER_NAME}-master" node-role.kubernetes.io/master:NoSchedule-
             exit 0
             ;;
         --k8s-version|--kubernetes-version)

@@ -231,6 +231,14 @@ lxc stop t3-worker-2
 lxc delete t3-worker-2
 ```
 
+## Using Master for scheduling pods
+If you want or have to (low on resources), you can tell kubernetes to also allow scheduling of pods on the master node. That means you could run a single master node without any worker nodes.
+This is done by removing a taint from the node.
+
+As a shortcut, you can this by running:
+```bash
+./k8s-on-lxd.sh --name t2 --allow-master-scheduling
+```
 
 
 ## Stopping the cluster
