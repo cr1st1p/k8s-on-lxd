@@ -76,6 +76,11 @@ join() {
 }
 
 
+# Allows to set a variable from a here-doc
+define() { 
+    IFS=$'\n' read -r -d '' "${1}" || true; 
+}
+
 # list defined function names, matching specified regexp pattern 
 listFunctions() {
         pattern="$1"

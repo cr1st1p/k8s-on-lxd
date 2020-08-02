@@ -146,7 +146,7 @@ launch_master__04_create_kubeadm_config() {
         remoteHost=$(hostnameFromUrl "$(lxdRemoteUrl "$LXD_REMOTE")")
         otherSANS="  - $remoteHost"
     else
-        read -r -d '' otherSANS <<EOS
+        define otherSANS <<EOS
   - $(hostname)
   - $(hostname -f)
 EOS
