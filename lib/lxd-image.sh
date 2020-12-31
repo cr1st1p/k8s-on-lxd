@@ -376,6 +376,17 @@ insideLxdImage__30_docker_start() {
 }
 
 
+
+# in order to be able to mount nfs mountpoints, at least those provided by nfs-server-provisioner,
+# we need the mount.nfs program
+# Running this on both master and worker, in case you allow master to get pods on it
+#
+insideLxdImage__40_nfs_client_install() {
+    info "installing nfs client code (to be able to mount nfs volumes)"
+    apt_install nfs-common
+}
+
+
 # ========================
 
 
@@ -394,14 +405,6 @@ prepareLxdImage_worker__30_inside_script_run() {
     run_script_inside_container "$container" --setup-inside-lxd-image-worker
 }
 
-
-# in order to be able to mount nfs mountpoints, at least those provided by nfs-server-provisioner,
-# we need the mount.nfs program
-#
-insideLxdImage_worker__10_nfs_client_install() {
-    info "installing nfs client code (to be able to mount nfs volumes)"
-    apt_install nfs-common
-}
 
 insideLxdImage_worker__20_pull_kubeadm_used_images() {
     info "pulling images used by kubeadm to speed up initialisation"
