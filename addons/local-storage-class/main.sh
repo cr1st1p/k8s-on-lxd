@@ -93,7 +93,7 @@ addon_local_storage_class_prepare_dirs() {
 
     ensure_addon_local_storage_class_dir_is_set
 
-    for c in $(lxcListByPrefixAllWorkers "$CLUSTER_NAME") ; do
+    for c in $(lxcListByPrefixAll "$CLUSTER_NAME") ; do
         _addon_local_storage_class_prepare_container "$c" "$addon_local_storage_class_dir"
     done
 }
