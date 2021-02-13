@@ -271,6 +271,20 @@ insideLxdImage__11_install_kubernetes_snap() {
     done
 }
 
+insideLxdImage__11_install_kubernetes_snap_part2() {
+    local container=$1
+
+    [ -n "$use_snap" ] || return 0
+
+    # sometimes kubelet does not start, showing error:
+    # cannot change profile for the next exec call: No such file or directory
+    # and above that line, apparmor is denying some operation.
+    #
+    info "Replacing apparmor profiles for kubelet"
+
+    apparmor_parser --replace  /var/lib/snapd/apparmor/profiles/snap.kubelet*
+}
+
 
 insideLxdImage__11_docker_config() {
     info "creating docker config file"
