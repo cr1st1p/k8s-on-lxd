@@ -25,7 +25,7 @@ LXD_PROFILE_NAME=k8s
 #shellcheck disable=2034
 IMAGE_NAME_BASE=k8s
 #shellcheck disable=2034
-VERSION=0.4
+VERSION=0.5
 
 
 K8S_VERSION_DEFAULT="1.18.2"

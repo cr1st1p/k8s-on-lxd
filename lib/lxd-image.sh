@@ -126,19 +126,29 @@ lxdPushShellFiles() {
     done
 }
 
-
-prepareLxdImage__02_kernel_config_file_or_module() {
+# we do this now, but we actually need to do it also at each container 
+# creation (TBD: or start?) since kernel version might have changed.
+# UPDATE: we're bind mounting /boot in the k8s profile to get rid of 
+# the copy file process.
+#
+# Need to run from outside container.
+#
+lxd_common_kernel_config_file_or_module() {
     local container=$1
     
     f=/boot/config-$(uname -r)
     
     if [ -f "$f" ]; then
-    	info "Copying kernel config file $f"
-    	lxc file push "$f" "$LXD_REMOTE$container/$f"
+    	#info "Copying kernel config file $f"
+    	#lxc file push "$f" "$LXD_REMOTE$container/$f"
     	modprobe configs || true 
     else
     	modprobe configs
     fi
+}
+
+prepareLxdImage__02_kernel_config_file_or_module() {
+    lxd_common_kernel_config_file_or_module "$1"
 }
 
 

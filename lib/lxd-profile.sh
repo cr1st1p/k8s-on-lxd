@@ -109,6 +109,12 @@ lxd_profile_create__07_kernel_messages() {
 }
 
 
+lxd_profile_create__08_mount_boot_dir() {
+    # we need kernel's config file, but kernel can change in time. So just mount the /boot dir
+    lxc profile device add "$LXD_REMOTE$LXD_PROFILE_NAME" boot_dir disk path=/boot source=/boot
+}
+
+
 lxdGetProfileVersion() {
     if lxc query "$LXD_REMOTE/1.0/profiles/$LXD_PROFILE_NAME" >/dev/null 2>/dev/null; then
         lxc profile get "$LXD_REMOTE$LXD_PROFILE_NAME" "$VERSION_FIELD"
